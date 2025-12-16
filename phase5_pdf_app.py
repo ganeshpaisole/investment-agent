@@ -1,31 +1,19 @@
 import streamlit as st
 import yfinance as yf
-from ta.momentum import RSIIndicator
-from ta.trend import EMAIndicator
-from fpdf import FPDF
 import pandas as pd
+import plotly.graph_objects as go
+from ta.momentum import RSIIndicator
+from ta.trend import EMAIndicator, MACD
+from ta.volatility import BollingerBands
+from fpdf import FPDF
 
 # --- 1. PAGE CONFIG ---
 st.set_page_config(page_title="Principal AI Agent", layout="wide")
 
-# --- 2. USER DATABASE (Define Users & Roles Here) ---
-# Format: "username": {"password": "pwd", "role": "admin/viewer"}
+# --- 2. USER DATABASE ---
 USERS = {
-    "admin": {
-        "password": "Orbittal2025",
-        "role": "admin",
-        "name": "Principal Consultant"
-    },
-    "client_demo": {
-        "password": "welcome123",
-        "role": "viewer",
-        "name": "Valued Client"
-    },
-    "staff": {
-        "password": "staff",
-        "role": "viewer",
-        "name": "Staff Member"
-    }
+    "admin": {"password": "Orbittal2025", "role": "admin", "name": "Principal Consultant"},
+    "client": {"password": "guest", "role": "viewer", "name": "Valued Client"}
 }
 
 # --- 3. SECURITY SYSTEM ---
@@ -33,158 +21,176 @@ def check_login():
     if "logged_in" not in st.session_state:
         st.session_state["logged_in"] = False
         st.session_state["user_role"] = None
-        st.session_state["user_name"] = None
-
+    
     if not st.session_state["logged_in"]:
-        st.title("🔒 Secure Login System")
-        st.markdown("Enter your credentials to access the AI Investment Engine.")
-        
+        st.title("🔒 Institutional Login")
         c1, c2 = st.columns(2)
         with c1:
-            username = st.text_input("Username")
-            password = st.text_input("Password", type="password")
-        
+            user = st.text_input("Username")
+            pwd = st.text_input("Password", type="password")
             if st.button("Login"):
-                # Check if user exists and password matches
-                if username in USERS and USERS[username]["password"] == password:
+                if user in USERS and USERS[user]["password"] == pwd:
                     st.session_state["logged_in"] = True
-                    st.session_state["user_role"] = USERS[username]["role"]
-                    st.session_state["user_name"] = USERS[username]["name"]
-                    st.success("Login Successful!")
+                    st.session_state["user_role"] = USERS[user]["role"]
+                    st.session_state["user_name"] = USERS[user]["name"]
                     st.rerun()
                 else:
-                    st.error("❌ Access Denied: Invalid Credentials")
-        
-        st.stop() # Stop app if not logged in
+                    st.error("Invalid Credentials")
+        st.stop()
 
 check_login()
 
-# =========================================================
-# 🔓 AUTHORIZED ZONE
-# =========================================================
-
-# --- 4. ANALYTICS ENGINE (Cached) ---
+# --- 4. ADVANCED ANALYTICS ENGINE ---
 @st.cache_data(ttl=24*3600)
 def analyze_stock(ticker):
     try:
         stock = yf.Ticker(ticker)
         df = stock.history(period="1y")
-        if df.empty: return None, None
+        if df.empty: return None, None, None
         
+        # --- A. TECHNICALS ---
+        # 1. RSI
         rsi = RSIIndicator(close=df["Close"], window=14).rsi().iloc[-1]
-        ema = EMAIndicator(close=df["Close"], window=200).ema_indicator().iloc[-1]
-        current_price = df["Close"].iloc[-1]
-        pe = stock.info.get('trailingPE', 0)
-        if pe is None: pe = 0
         
+        # 2. EMA (Trend)
+        ema = EMAIndicator(close=df["Close"], window=200).ema_indicator().iloc[-1]
+        
+        # 3. MACD (Momentum Strength)
+        macd = MACD(close=df["Close"])
+        df['MACD'] = macd.macd()
+        df['MACD_Signal'] = macd.macd_signal()
+        current_macd = df['MACD'].iloc[-1]
+        current_signal = df['MACD_Signal'].iloc[-1]
+        
+        # 4. Bollinger Bands (Volatility)
+        bb = BollingerBands(close=df["Close"], window=20)
+        df['BB_High'] = bb.bollinger_hband()
+        df['BB_Low'] = bb.bollinger_lband()
+        
+        current_price = df["Close"].iloc[-1]
+        
+        # --- B. FUNDAMENTALS ---
+        info = stock.info
+        fundamentals = {
+            "Market Cap": info.get('marketCap', 'N/A'),
+            "52W High": info.get('fiftyTwoWeekHigh', 0),
+            "52W Low": info.get('fiftyTwoWeekLow', 0),
+            "P/E Ratio": info.get('trailingPE', 0),
+            "Sector": info.get('sector', 'Unknown')
+        }
+        
+        # --- C. SCORING ---
         score = 0
         if current_price > ema: score += 1
         if 30 < rsi < 70: score += 1
-        if 0 < pe < 40: score += 1
+        if current_macd > current_signal: score += 1 # Bullish MACD Cross
         
-        return {
-            "ticker": ticker,
+        metrics = {
             "price": round(current_price, 2),
             "trend": "BULLISH 🟢" if current_price > ema else "BEARISH 🔴",
             "rsi": round(rsi, 2),
-            "pe": pe,
+            "macd_signal": "Buy Signal" if current_macd > current_signal else "Sell Signal",
             "score": score
-        }, df
-    except Exception:
-        return None, None
+        }
+        
+        return metrics, df, fundamentals
+        
+    except Exception as e:
+        return None, None, None
 
-# --- 5. PDF GENERATOR ---
-def create_pdf_report(ticker, data, report_text):
+# --- 5. PLOTLY CHARTING FUNCTION ---
+def plot_advanced_chart(df, ticker):
+    fig = go.Figure()
+    
+    # Candlestick Chart
+    fig.add_trace(go.Candlestick(x=df.index,
+                open=df['Open'], high=df['High'],
+                low=df['Low'], close=df['Close'], name='Price'))
+    
+    # Add Bollinger Bands
+    fig.add_trace(go.Scatter(x=df.index, y=df['BB_High'], line=dict(color='gray', width=1), name='BB Upper'))
+    fig.add_trace(go.Scatter(x=df.index, y=df['BB_Low'], line=dict(color='gray', width=1), name='BB Lower'))
+    
+    fig.update_layout(title=f"{ticker} - Interactive Analysis", xaxis_rangeslider_visible=False, height=500)
+    return fig
+
+# --- 6. PDF GENERATOR ---
+def create_pdf(ticker, data, text):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt=f"Investment Memo: {ticker}", ln=True, align='C')
+    pdf.cell(200, 10, txt=f"Executive Brief: {ticker}", ln=True, align='C')
     pdf.ln(10)
-    pdf.cell(200, 10, txt=f"Price: Rs. {data['price']} | Trend: {data['trend']}", ln=True)
+    pdf.multi_cell(0, 10, txt=f"Price: {data['price']} | Trend: {data['trend']} | MACD: {data['macd_signal']}")
     pdf.ln(10)
-    pdf.multi_cell(0, 10, txt=report_text)
+    pdf.multi_cell(0, 10, txt=text)
     pdf.ln(20)
     pdf.set_font("Arial", 'I', 8)
-    pdf.multi_cell(0, 5, txt="DISCLAIMER: Not SEBI Registered. For educational purposes only.")
+    pdf.multi_cell(0, 5, txt="Generated by AI Agent. Not Financial Advice.")
     return pdf.output(dest='S').encode('latin-1')
 
-# --- 6. DASHBOARD UI ---
-st.title(f"👋 Welcome, {st.session_state['user_name']}")
+# --- 7. DASHBOARD UI ---
+st.title(f"📊 Institutional Dashboard ({st.session_state['user_name']})")
 
-# === SIDEBAR CONTROL PANEL ===
 with st.sidebar:
-    st.header("Control Panel")
-    
-    # Show Role Badge
+    st.header("Controls")
     if st.session_state["user_role"] == "admin":
-        st.success("🔑 ADMIN ACCESS")
+        mode = st.radio("Mode:", ["Deep Dive", "Competitor Comparison"])
     else:
-        st.info("👁️ VIEWER ACCESS")
-        
+        mode = st.radio("Mode:", ["Deep Dive"])
+    
     if st.button("Logout"):
         st.session_state["logged_in"] = False
         st.rerun()
-    st.markdown("---")
-    
-    # --- LOGIC TO RESTRICT FEATURES ---
-    # Admins see BOTH options. Viewers see ONLY "Single Stock".
-    if st.session_state["user_role"] == "admin":
-        options = ["Single Stock Deep Dive", "Competitor Comparison"]
-    else:
-        options = ["Single Stock Deep Dive"] # <--- RESTRICTED LIST
-        
-    mode = st.radio("Select Analysis Mode:", options)
 
-# === MODE 1: SINGLE STOCK ===
-if mode == "Single Stock Deep Dive":
-    st.subheader("🔍 Deep Dive Analysis")
-    ticker = st.text_input("Enter Ticker (NSE):", value="RELIANCE.NS")
+# === MODE 1: DEEP DIVE ===
+if mode == "Deep Dive":
+    st.subheader("🔍 Advanced Technical Analysis")
+    ticker = st.text_input("Ticker Symbol:", value="RELIANCE.NS")
     
-    if st.button("Generate Report"):
-        metrics, history = analyze_stock(ticker)
-        if metrics:
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Price", f"₹{metrics['price']}")
-            c2.metric("Trend", metrics['trend'])
-            c3.metric("RSI", f"{metrics['rsi']:.1f}")
-            st.line_chart(history['Close'])
+    if st.button("Analyze"):
+        with st.spinner("Calculating Advanced Indicators..."):
+            metrics, history, funds = analyze_stock(ticker)
             
-            verdict = f"Stock is in {metrics['trend']} trend. RSI: {metrics['rsi']:.1f}. P/E: {metrics['pe']}."
-            st.info(f"**AI Verdict:** {verdict}")
-            
-            # Allow PDF download for everyone
-            pdf_data = create_pdf_report(ticker, metrics, verdict)
-            st.download_button("📄 Download PDF", data=pdf_data, file_name=f"{ticker}_Report.pdf", mime="application/pdf")
-        else:
-            st.error("Ticker not found.")
+            if metrics:
+                # Top Row: Key Metrics
+                k1, k2, k3, k4 = st.columns(4)
+                k1.metric("Current Price", f"₹{metrics['price']}")
+                k2.metric("Trend (200 EMA)", metrics['trend'])
+                k3.metric("RSI Strength", metrics['rsi'])
+                k4.metric("MACD Signal", metrics['macd_signal'])
+                
+                # Middle: The Professional Chart
+                st.plotly_chart(plot_advanced_chart(history, ticker), use_container_width=True)
+                
+                # Bottom: Fundamentals & Verdict
+                c1, c2 = st.columns([1, 2])
+                with c1:
+                    st.markdown("### 🏢 Fundamentals")
+                    st.dataframe(pd.DataFrame([funds]).T, height=200)
+                
+                with c2:
+                    st.markdown("### 🤖 AI Executive Summary")
+                    verdict = (f"{ticker} is currently in a {metrics['trend']} setup. "
+                               f"RSI is at {metrics['rsi']}, indicating the stock is {'overbought' if metrics['rsi']>70 else 'neutral'}. "
+                               f"Our MACD momentum indicator suggests a {metrics['macd_signal']}.")
+                    st.info(verdict)
+                    
+                    pdf = create_pdf(ticker, metrics, verdict)
+                    st.download_button("📄 Download Brief", data=pdf, file_name=f"{ticker}_Brief.pdf", mime="application/pdf")
 
-# === MODE 2: COMPARISON (Only accessible if selected) ===
+# === MODE 2: COMPARISON ===
 elif mode == "Competitor Comparison":
-    st.subheader("⚖️ Head-to-Head Benchmarking")
-    col1, col2 = st.columns(2)
-    with col1: stock_a = st.text_input("Competitor A:", value="TCS.NS")
-    with col2: stock_b = st.text_input("Competitor B:", value="INFY.NS")
-        
-    if st.button("Compare Competitors"):
-        data_a, hist_a = analyze_stock(stock_a)
-        data_b, hist_b = analyze_stock(stock_b)
-        
-        if data_a and data_b:
-            c1, c2 = st.columns(2)
-            with c1:
-                st.subheader(f"🔹 {stock_a}")
-                st.metric("Score", f"{data_a['score']}/3")
-                st.line_chart(hist_a['Close'])
-            with c2:
-                st.subheader(f"🔸 {stock_b}")
-                st.metric("Score", f"{data_b['score']}/3")
-                st.line_chart(hist_b['Close'])
-            
-            st.divider()
-            if data_a['score'] > data_b['score']: st.success(f"🏆 WINNER: {stock_a}")
-            elif data_b['score'] > data_a['score']: st.success(f"🏆 WINNER: {stock_b}")
-            else: st.warning("It's a Tie.")
-
-# SEBI Disclaimer
-st.markdown("---")
-st.warning("**SEBI DISCLAIMER:** Educational purposes only. Not financial advice.")
+    st.subheader("⚖️ Quick Benchmarking")
+    c1, c2 = st.columns(2)
+    with c1: s1 = st.text_input("Stock A", "TCS.NS")
+    with c2: s2 = st.text_input("Stock B", "INFY.NS")
+    
+    if st.button("Compare"):
+        m1, h1, f1 = analyze_stock(s1)
+        m2, h2, f2 = analyze_stock(s2)
+        if m1 and m2:
+            col1, col2 = st.columns(2)
+            col1.metric(s1, m1['score'], delta="Score/3")
+            col2.metric(s2, m2['score'], delta="Score/3")
+            st.success(f"Winner: {s1 if m1['score'] > m2['score'] else s2}")
