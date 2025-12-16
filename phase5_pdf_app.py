@@ -233,4 +233,4 @@ elif mode == "Competitor Comparison":
     if st.button("Compare"):
         m1, h1, f1 = analyze_stock(s1)
         m2, h2, f2 = analyze_stock(s2)
-        if m1 and m2
+        if m1 and m2:
