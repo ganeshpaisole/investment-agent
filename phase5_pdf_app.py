@@ -14,14 +14,17 @@ from fpdf import FPDF
 # --- 1. PAGE CONFIG ---
 st.set_page_config(page_title="Principal AI Agent", layout="wide")
 
-# --- 2. SECURITY & SECRETS ---
+# --- 2. SECURITY CONFIG ---
+# Roles are defined here, but passwords must be in Streamlit Secrets
 USER_ROLES = {
     "admin": {"role": "admin", "name": "Principal Consultant"},
     "client": {"role": "viewer", "name": "Valued Client"}
 }
 
-# --- 3. SMART STOCK DATABASE (Name -> Ticker Mapping) ---
-# This allows searching by Name ("Reliance") or Ticker ("RELIANCE.NS")
+# --- 3. DATABASES ---
+
+# A. SMART SEARCH DATABASE (Name -> Ticker Mapping)
+# Used for Dropdown Search in Deep Dive & Compare
 NSE_COMPANIES = {
     "Reliance Industries (RELIANCE)": "RELIANCE.NS",
     "Tata Consultancy Services (TCS)": "TCS.NS",
@@ -74,6 +77,16 @@ NSE_COMPANIES = {
     "ONGC (ONGC)": "ONGC.NS"
 }
 
+# B. SECTOR DATABASE (List of Tickers)
+# Used for the Market Scanner Tab
+SECTORS = {
+    "Blue Chips (Top 20)": ["RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "ICICIBANK.NS", "INFY.NS", "HINDUNILVR.NS", "ITC.NS", "SBIN.NS", "BHARTIARTL.NS", "LICI.NS", "LT.NS", "BAJFINANCE.NS", "HCLTECH.NS", "KOTAKBANK.NS", "AXISBANK.NS", "ASIANPAINT.NS", "MARUTI.NS", "TITAN.NS", "ULTRACEMCO.NS", "SUNPHARMA.NS"],
+    "IT Sector": ["TCS.NS", "INFY.NS", "HCLTECH.NS", "WIPRO.NS", "TECHM.NS", "LTIM.NS", "PERSISTENT.NS", "COFORGE.NS", "MPHASIS.NS", "OFSS.NS"],
+    "Banking": ["HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS", "KOTAKBANK.NS", "AXISBANK.NS", "INDUSINDBK.NS", "BANKBARODA.NS", "PNB.NS", "IDFCFIRSTB.NS", "BAJAJFINSV.NS"],
+    "Auto": ["MARUTI.NS", "TATAMOTORS.NS", "M&M.NS", "BAJAJ-AUTO.NS", "EICHERMOT.NS", "HEROMOTOCO.NS", "TVSMOTOR.NS", "ASHOKLEY.NS", "BHARATFORG.NS", "TIINDIA.NS"],
+    "Pharma": ["SUNPHARMA.NS", "DRREDDY.NS", "CIPLA.NS", "DIVISLAB.NS", "LUPIN.NS", "AUROPHARMA.NS", "ALKEM.NS", "TORNTPHARM.NS", "MANKIND.NS", "ZYDUSLIFE.NS"]
+}
+
 # --- 4. SECURE LOGIN SYSTEM ---
 def check_login():
     if "logged_in" not in st.session_state: st.session_state.update({"logged_in": False, "user_role": None})
@@ -87,12 +100,12 @@ def check_login():
             if submitted:
                 if u in USER_ROLES:
                     try:
-                        # Use secrets for password check
+                        # IP PROTECTION: Verify against Cloud Secrets
                         if p == st.secrets["passwords"][u]:
                             st.session_state.update({"logged_in": True, "user_role": USER_ROLES[u]["role"], "user_name": USER_ROLES[u]["name"]})
                             st.rerun()
                         else: st.error("❌ Invalid Password")
-                    except: st.error("⚠️ Security Config Error")
+                    except: st.error("⚠️ Secrets not configured. Check Streamlit Dashboard.")
                 else: st.error("❌ Invalid Username")
         st.stop()
 check_login()
@@ -221,6 +234,7 @@ def plot_chart(df, ticker):
     fig.add_trace(go.Scatter(x=df.index, y=df['BB_High'], line=dict(color='gray', width=1), name='BB Upper'))
     fig.add_trace(go.Scatter(x=df.index, y=df['BB_Low'], line=dict(color='gray', width=1), name='BB Lower'))
     try:
+        # Polynomial Regression Forecast
         recent_df = df.tail(90).copy()
         if len(recent_df) > 20:
             x = np.arange(len(recent_df))
@@ -289,21 +303,17 @@ if mode == "Market Scanner":
     t1, t2, t3 = st.tabs(["Sector Leaders", "Value Hunters", "📰 Market News"])
     with t1:
         with st.form("scanner_form"):
-            sec = st.selectbox("Select Sector:", ["Blue Chips (Top 20)", "IT Sector", "Banking", "Auto", "Pharma"])
+            sec = st.selectbox("Select Sector:", list(SECTORS.keys()))
             submitted = st.form_submit_button("Scan Sector")
         if submitted:
-            # Reconstruct list from NSE_COMPANIES for now (or define sector lists)
-            # For simplicity in this response, I'll fetch top 5 from the main dictionary
-            # In production, keep your SECTORS dictionary mapping
-            tickers = list(NSE_COMPANIES.values())[:5] 
-            with st.spinner(f"Scanning..."):
-                d = run_scanner(tickers)
+            with st.spinner(f"Scanning {sec}..."):
+                d = run_scanner(SECTORS[sec])
                 st.dataframe(d)
 
     with t2:
         if st.button("Find 52-Week Lows"):
             with st.spinner("Hunting for value..."):
-                all_s = list(NSE_COMPANIES.values())
+                all_s = list(set([i for s in SECTORS.values() for i in s]))
                 d = run_scanner(all_s)
                 st.dataframe(d.sort_values("Dist 52W Low (%)").head(10))
     with t3:
@@ -321,17 +331,13 @@ if mode == "Market Scanner":
 
 elif mode == "Deep Dive Valuation":
     st.subheader("🔍 Valuation & Analysis")
-    
-    # --- NEW SEARCH BAR ---
     with st.form("analysis_form"):
-        # Dropdown Search
+        # Phase 22: Smart Dropdown Search
         selected_company = st.selectbox("Search Company:", options=list(NSE_COMPANIES.keys()))
         submitted = st.form_submit_button("Run Analysis")
     
     if submitted:
-        # Get the actual ticker from the dictionary
         ticker = NSE_COMPANIES[selected_company]
-        
         with st.spinner(f"Analyzing {selected_company} ({ticker})..."):
             metrics, history, info = analyze_stock(ticker)
             if metrics:
@@ -340,7 +346,10 @@ elif mode == "Deep Dive Valuation":
                 c1.metric("Overall Score", f"{metrics['total_score']}/10")
                 c2.metric("Tech Strength", f"{metrics['tech_score']}/5")
                 c3.metric("Fund Health", f"{metrics['fund_score']}/5")
-                tab1, tab2, tab3, tab4, tab5 = st.tabs(["📈 Forecast", "✅ SWOC", "🎩 Valuation", "🏢 Financials", "📰 News & Events"])
+                
+                # Phase 20: News Tab Added
+                tab1, tab2, tab3, tab4, tab5 = st.tabs(["📈 Forecast", "✅ SWOC", "🎩 Warren Buffett Way", "🏢 Financials", "📰 News & Events"])
+                
                 with tab1: st.plotly_chart(plot_chart(history, ticker), use_container_width=True)
                 with tab2:
                     c_pros, c_cons = st.columns(2)
@@ -349,7 +358,8 @@ elif mode == "Deep Dive Valuation":
                     with c_cons:
                         st.error("❌ WEAKNESSES"); [st.write(f"• {c}") for c in cons_list]
                 with tab3:
-                    if metrics['intrinsic'] > 0: st.metric("Fair Value", f"₹{metrics['intrinsic']}", delta=f"{round(((metrics['intrinsic']-metrics['price'])/metrics['price'])*100, 1)}% Potential" if metrics['intrinsic'] > metrics['price'] else "Premium")
+                    if metrics['intrinsic'] > 0:
+                        st.metric("Fair Value", f"₹{metrics['intrinsic']}", delta=f"{round(((metrics['intrinsic']-metrics['price'])/metrics['price'])*100, 1)}% Potential" if metrics['intrinsic'] > metrics['price'] else "Premium")
                     else: st.error("Cannot calculate Fair Value.")
                 with tab4: st.write(info.get('longBusinessSummary', 'No summary.'))
                 with tab5:
@@ -375,7 +385,7 @@ elif mode == "Compare":
     st.subheader("⚖️ Head-to-Head Comparison")
     with st.form("compare_form"):
         c1, c2 = st.columns(2)
-        # Dropdown Search for Compare Mode
+        # Smart Dropdowns for Compare
         s1_name = c1.selectbox("Stock A", options=list(NSE_COMPANIES.keys()), index=0)
         s2_name = c2.selectbox("Stock B", options=list(NSE_COMPANIES.keys()), index=1)
         submitted = st.form_submit_button("Compare Stocks")
