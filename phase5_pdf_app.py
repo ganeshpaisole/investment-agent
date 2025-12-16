@@ -22,60 +22,51 @@ USER_ROLES = {
     "client": {"role": "viewer", "name": "Valued Client"}
 }
 
-# --- 3. DATABASE ENGINE (THE NEW UPGRADE) ---
+# --- 3. DATABASE ENGINE (UPDATED: ALL NSE STOCKS) ---
 
-# A. DEFAULT FALLBACK LIST (In case NSE Server is down)
-DEFAULT_NSE_COMPANIES = {
-    "Reliance Industries (RELIANCE)": "RELIANCE.NS",
-    "Tata Consultancy Services (TCS)": "TCS.NS",
-    "HDFC Bank (HDFCBANK)": "HDFCBANK.NS",
-    "ICICI Bank (ICICIBANK)": "ICICIBANK.NS",
-    "Infosys (INFY)": "INFY.NS",
-    "State Bank of India (SBIN)": "SBIN.NS",
-    "Hindustan Unilever (HINDUNILVR)": "HINDUNILVR.NS",
-    "ITC Limited (ITC)": "ITC.NS",
-    "Larsen & Toubro (LT)": "LT.NS",
-    "Bajaj Finance (BAJFINANCE)": "BAJFINANCE.NS"
+# A. FALLBACK LIST (Used if live fetch fails)
+DEFAULT_COMPANIES = {
+    "Reliance Industries": "RELIANCE.NS",
+    "Tata Consultancy Services": "TCS.NS",
+    "HDFC Bank": "HDFCBANK.NS",
+    "Infosys": "INFY.NS",
+    "ITC Limited": "ITC.NS"
 }
 
-# B. DYNAMIC FETCHER FOR ALL NSE STOCKS
-@st.cache_data(ttl=24*3600) # Cache for 24 hours
+# B. DYNAMIC FETCHER
+@st.cache_data(ttl=24*3600) # Cache this big list for 24 hours
 def load_nse_master_list():
-    """
-    Fetches the official list of all active companies on NSE.
-    Returns a dictionary: {"Company Name (SYMBOL)": "SYMBOL.NS"}
-    """
-    master_dict = DEFAULT_NSE_COMPANIES.copy()
-    
+    master_dict = {}
     try:
-        # Official NSE List URL (hosted on a stable mirror to avoid scraping blocks)
-        # We use a reliable GitHub mirror for stability as NSE website often blocks bots
-        url = "https://raw.githubusercontent.com/bhattbhavesh91/nse_nifty_500_companies_list/master/nifty_500.csv"
-        
-        # Alternative: Try fetching full list if needed, but Nifty 500 covers 95% market cap
+        # 1. Try fetching the official full list (EQUITY_L.csv)
+        # We use a reliable GitHub mirror because NSE website blocks cloud servers
+        url = "https://raw.githubusercontent.com/sfini/NSE-Data/master/EQUITY_L.csv"
         df = pd.read_csv(url)
         
-        # The CSV usually has 'Company Name' and 'Symbol' columns
-        if 'Company Name' in df.columns and 'Symbol' in df.columns:
+        # 2. Process the CSV
+        if 'SYMBOL' in df.columns and 'NAME OF COMPANY' in df.columns:
             for index, row in df.iterrows():
-                clean_name = row['Company Name']
-                symbol = row['Symbol']
-                # Create the format: "Company Name (SYMBOL)"
-                key = f"{clean_name} ({symbol})"
-                # Map to Yahoo Finance Ticker: "SYMBOL.NS"
-                value = f"{symbol}.NS"
-                master_dict[key] = value
+                symbol = row['SYMBOL']
+                name = row['NAME OF COMPANY']
                 
-        return master_dict
+                # Format: "Zomato Ltd (ZOMATO)"
+                label = f"{name} ({symbol})"
+                ticker = f"{symbol}.NS"
+                
+                master_dict[label] = ticker
         
+        return master_dict
+    
     except Exception as e:
-        # Silently fail and return the default list if internet/source is down
-        return DEFAULT_NSE_COMPANIES
+        # If fetch fails, return the default list so app doesn't break
+        print(f"Error fetching Master List: {e}")
+        return DEFAULT_COMPANIES
 
-# LOAD THE DATABASE
+# C. INITIALIZE DATABASE
+# This line replaces your old hardcoded dictionary
 NSE_COMPANIES = load_nse_master_list()
 
-# C. SECTOR LISTS (For Market Scanner)
+# D. SECTOR LISTS (Kept for Market Scanner Mode)
 SECTORS = {
     "Blue Chips (Top 20)": ["RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "ICICIBANK.NS", "INFY.NS", "HINDUNILVR.NS", "ITC.NS", "SBIN.NS", "BHARTIARTL.NS", "LICI.NS", "LT.NS", "BAJFINANCE.NS", "HCLTECH.NS", "KOTAKBANK.NS", "AXISBANK.NS", "ASIANPAINT.NS", "MARUTI.NS", "TITAN.NS", "ULTRACEMCO.NS", "SUNPHARMA.NS"],
     "IT Sector": ["TCS.NS", "INFY.NS", "HCLTECH.NS", "WIPRO.NS", "TECHM.NS", "LTIM.NS", "PERSISTENT.NS", "COFORGE.NS", "MPHASIS.NS", "OFSS.NS"],
