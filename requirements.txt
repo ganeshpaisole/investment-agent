@@ -4,3 +4,4 @@ ta
 pandas
 fpdf
 plotly
+feedparser
