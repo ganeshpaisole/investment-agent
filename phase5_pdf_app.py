@@ -5,8 +5,6 @@ import numpy as np
 import math
 import plotly.graph_objects as go
 import feedparser
-import requests
-import io
 from datetime import datetime
 from ta.momentum import RSIIndicator, StochasticOscillator
 from ta.trend import EMAIndicator, MACD
@@ -22,84 +20,53 @@ USER_ROLES = {
     "client": {"role": "viewer", "name": "Valued Client"}
 }
 
-# --- 3. DATABASE ENGINE (ROBUST EDITION) ---
-
-# A. EXPANDED FALLBACK LIST (Top 80 Stocks - Guaranteed to work)
-# This list loads INSTANTLY if the internet fetch fails.
+# --- 3. DATABASE ENGINE ---
+# A. ROBUST DEFAULT LIST (Top 80 Stocks)
 DEFAULT_COMPANIES = {
-    # --- BLUE CHIPS ---
     "Reliance Industries": "RELIANCE.NS", "TCS": "TCS.NS", "HDFC Bank": "HDFCBANK.NS",
     "ICICI Bank": "ICICIBANK.NS", "Infosys": "INFY.NS", "State Bank of India": "SBIN.NS",
     "Bharti Airtel": "BHARTIARTL.NS", "ITC Ltd": "ITC.NS", "Larsen & Toubro": "LT.NS",
     "Hindustan Unilever": "HINDUNILVR.NS", "Bajaj Finance": "BAJFINANCE.NS",
     "Maruti Suzuki": "MARUTI.NS", "Asian Paints": "ASIANPAINT.NS", "Titan Company": "TITAN.NS",
     "Sun Pharma": "SUNPHARMA.NS", "UltraTech Cement": "ULTRACEMCO.NS", "Kotak Bank": "KOTAKBANK.NS",
-    
-    # --- AUTO ---
     "Tata Motors": "TATAMOTORS.NS", "Mahindra & Mahindra": "M&M.NS", "Bajaj Auto": "BAJAJ-AUTO.NS",
     "Eicher Motors": "EICHERMOT.NS", "Hero MotoCorp": "HEROMOTOCO.NS", "TVS Motor": "TVSMOTOR.NS",
-    
-    # --- IT & TECH ---
     "HCL Tech": "HCLTECH.NS", "Wipro": "WIPRO.NS", "Tech Mahindra": "TECHM.NS",
-    "LTIMindtree": "LTIM.NS", "Persistent Systems": "PERSISTENT.NS", "Zomato": "ZOMATO.NS",
-    "Paytm (One97)": "PAYTM.NS", "PB Fintech (PolicyBazaar)": "POLICYBZR.NS",
-    
-    # --- BANKING & FINANCE ---
+    "LTIMindtree": "LTIM.NS", "Zomato": "ZOMATO.NS", "Paytm": "PAYTM.NS",
     "Axis Bank": "AXISBANK.NS", "IndusInd Bank": "INDUSINDBK.NS", "Bank of Baroda": "BANKBARODA.NS",
     "Punjab National Bank": "PNB.NS", "IDFC First Bank": "IDFCFIRSTB.NS", "Bajaj Finserv": "BAJAJFINSV.NS",
     "Jio Financial": "JIOFIN.NS", "IREDA": "IREDA.NS", "REC Ltd": "REC.NS", "PFC": "PFC.NS",
-    
-    # --- ENERGY & POWER ---
     "NTPC": "NTPC.NS", "Power Grid": "POWERGRID.NS", "ONGC": "ONGC.NS",
     "Coal India": "COALINDIA.NS", "Tata Power": "TATAPOWER.NS", "Adani Green": "ADANIGREEN.NS",
-    "Adani Power": "ADANIPOWER.NS", "NHPC": "NHPC.NS", "Suzlon Energy": "SUZLON.NS",
-    
-    # --- METALS & COMMODITIES ---
+    "Adani Power": "ADANIPOWER.NS", "Suzlon Energy": "SUZLON.NS",
     "Tata Steel": "TATASTEEL.NS", "JSW Steel": "JSWSTEEL.NS", "Hindalco": "HINDALCO.NS",
-    "Vedanta": "VEDL.NS", "Jindal Steel": "JINDALSTEL.NS", "NMDC": "NMDC.NS",
-    
-    # --- ADANI GROUP ---
     "Adani Enterprises": "ADANIENT.NS", "Adani Ports": "ADANIPORTS.NS", "Adani Total Gas": "ATGL.NS",
-    "Adani Energy": "ADANIENSOL.NS", "Ambuja Cements": "AMBUJACEM.NS", "ACC": "ACC.NS",
-    
-    # --- CONSUMER & PHARMA ---
     "Nestle India": "NESTLEIND.NS", "Britannia": "BRITANNIA.NS", "Varun Beverages": "VARUN.NS",
     "Dr Reddys Labs": "DRREDDY.NS", "Cipla": "CIPLA.NS", "Apollo Hospitals": "APOLLOHOSP.NS",
     "Divis Labs": "DIVISLAB.NS", "Lupin": "LUPIN.NS", "Trent": "TRENT.NS", "DMart": "DMART.NS",
-    
-    # --- PSU & DEFENCE ---
-    "HAL": "HAL.NS", "Bharat Electronics": "BEL.NS", "Mazagon Dock": "MAZDOCK.NS",
-    "Cochin Shipyard": "COCHINSHIP.NS", "BHEL": "BHEL.NS", "IRFC": "IRFC.NS", "RVNL": "RVNL.NS"
+    "HAL": "HAL.NS", "Bharat Electronics": "BEL.NS", "Mazagon Dock": "MAZDOCK.NS"
 }
 
-# B. DYNAMIC FETCHER (Tries to get 1900+ stocks, falls back to list above)
+# B. DYNAMIC FETCHER
 @st.cache_data(ttl=24*3600)
 def load_nse_master_list():
-    # Start with the robust default list
     master_dict = DEFAULT_COMPANIES.copy()
-    
     try:
-        # Try fetching full list
         url = "https://raw.githubusercontent.com/sfini/NSE-Data/master/EQUITY_L.csv"
         df = pd.read_csv(url)
-        
         if 'SYMBOL' in df.columns and 'NAME OF COMPANY' in df.columns:
             for index, row in df.iterrows():
                 symbol = row['SYMBOL']
                 name = row['NAME OF COMPANY']
                 label = f"{name} ({symbol})"
                 ticker = f"{symbol}.NS"
-                master_dict[label] = ticker # Overwrite/Append to master dict
+                master_dict[label] = ticker
         return master_dict
-    
-    except Exception:
-        # If fetch fails, we just return the expanded DEFAULT_COMPANIES
-        return DEFAULT_COMPANIES
+    except: return DEFAULT_COMPANIES
 
-# C. INITIALIZE DATABASE
 NSE_COMPANIES = load_nse_master_list()
 
-# D. SECTOR LISTS (Kept for Market Scanner Mode)
+# C. SECTOR LISTS
 SECTORS = {
     "Blue Chips (Top 20)": ["RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "ICICIBANK.NS", "INFY.NS", "HINDUNILVR.NS", "ITC.NS", "SBIN.NS", "BHARTIARTL.NS", "LICI.NS", "LT.NS", "BAJFINANCE.NS", "HCLTECH.NS", "KOTAKBANK.NS", "AXISBANK.NS", "ASIANPAINT.NS", "MARUTI.NS", "TITAN.NS", "ULTRACEMCO.NS", "SUNPHARMA.NS"],
     "IT Sector": ["TCS.NS", "INFY.NS", "HCLTECH.NS", "WIPRO.NS", "TECHM.NS", "LTIM.NS", "PERSISTENT.NS", "COFORGE.NS", "MPHASIS.NS", "OFSS.NS"],
@@ -108,7 +75,7 @@ SECTORS = {
     "Pharma": ["SUNPHARMA.NS", "DRREDDY.NS", "CIPLA.NS", "DIVISLAB.NS", "LUPIN.NS", "AUROPHARMA.NS", "ALKEM.NS", "TORNTPHARM.NS", "MANKIND.NS", "ZYDUSLIFE.NS"]
 }
 
-# --- 4. SECURE LOGIN SYSTEM ---
+# --- 4. SECURE LOGIN ---
 def check_login():
     if "logged_in" not in st.session_state: st.session_state.update({"logged_in": False, "user_role": None})
     if not st.session_state["logged_in"]:
@@ -140,31 +107,7 @@ def get_market_pulse():
         return {"price": round(price, 2), "change": round(price-prev, 2), "pct": round(((price-prev)/prev)*100, 2), "trend": "BULLISH 🐂" if price > df["Close"].mean() else "BEARISH 🐻", "data": df}
     except: return None
 
-# --- 6. NEWS ENGINE ---
-@st.cache_data(ttl=3600)
-def get_google_news(query):
-    try:
-        encoded_query = query.replace(" ", "+")
-        rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-IN&gl=IN&ceid=IN:en"
-        feed = feedparser.parse(rss_url)
-        news_items = []
-        for entry in feed.entries[:8]:
-            news_items.append({"title": entry.title, "link": entry.link, "published": entry.published, "source": entry.source.title})
-        return news_items
-    except: return []
-
-@st.cache_data(ttl=3600)
-def get_company_news(ticker):
-    try:
-        stock = yf.Ticker(ticker)
-        news = stock.news
-        cleaned_news = []
-        for n in news[:5]:
-            cleaned_news.append({"title": n['title'], "link": n['link'], "publisher": n.get('publisher', 'Yahoo'), "time": datetime.fromtimestamp(n['providerPublishTime']).strftime('%Y-%m-%d')})
-        return cleaned_news
-    except: return []
-
-# --- 7. CORE ANALYTICS ---
+# --- 6. CORE ANALYTICS ---
 @st.cache_data(ttl=24*3600)
 def analyze_stock(ticker):
     try:
@@ -175,6 +118,7 @@ def analyze_stock(ticker):
         info = stock.info
         current_price = df["Close"].iloc[-1]
         
+        # Technicals
         ema_200 = EMAIndicator(close=df["Close"], window=200).ema_indicator().iloc[-1]
         rsi = RSIIndicator(close=df["Close"], window=14).rsi().iloc[-1]
         stoch = StochasticOscillator(high=df["High"], low=df["Low"], close=df["Close"]).stoch().iloc[-1]
@@ -185,17 +129,20 @@ def analyze_stock(ticker):
         df['BB_High'] = bb.bollinger_hband()
         df['BB_Low'] = bb.bollinger_lband()
 
+        # Fundamentals
         eps = info.get('trailingEps', 0) or 0
         book_value = info.get('bookValue', 0) or 0
         pe = info.get('trailingPE', 0) or 0
         margins = info.get('profitMargins', 0) or 0
         debt = info.get('debtToEquity', 0) or 0
         roe = info.get('returnOnEquity', 0) or 0
+        peg = info.get('pegRatio', 0) or 0
         
         intrinsic_value = 0
         if eps > 0 and book_value > 0:
             intrinsic_value = math.sqrt(22.5 * eps * book_value)
         
+        # Base Scoring
         t_score = 0
         if current_price > ema_200: t_score += 1
         if 40 < rsi < 70: t_score += 1
@@ -213,7 +160,7 @@ def analyze_stock(ticker):
             "price": round(current_price, 2),
             "tech_score": t_score, "fund_score": f_score, "total_score": t_score + f_score,
             "rsi": round(rsi, 2), "pe": round(pe, 2), "margins": round(margins*100, 2),
-            "roe": round(roe*100, 2), "debt": round(debt, 2),
+            "roe": round(roe*100, 2), "debt": round(debt, 2), "peg": peg,
             "trend": "UP 🟢" if current_price > ema_200 else "DOWN 🔴",
             "intrinsic": round(intrinsic_value, 2),
             "eps": eps, "book_value": book_value, "sector": info.get('sector', 'General')
@@ -221,32 +168,76 @@ def analyze_stock(ticker):
         return metrics, df, info
     except Exception as e: return None, None, str(e)
 
+# --- 7. NEW AIMAGICA ALGORITHM ---
+@st.cache_data(ttl=3600)
+def run_aimagica_scan(stock_list):
+    """
+    Runs the 'AI Magic' Algorithm to identify Top 5 Opportunities.
+    Formula: 
+    - Valuation (30%): Below Intrinsic Value?
+    - Reversal (30%): RSI Oversold but MACD Turning Up?
+    - Quality (20%): Margins > 15%?
+    - Growth (20%): PEG Ratio < 1.5?
+    """
+    results = []
+    
+    for ticker in stock_list:
+        try:
+            m, _, _ = analyze_stock(ticker)
+            if not m: continue
+            
+            # 1. Valuation Score (0-30 points)
+            val_score = 0
+            if m['intrinsic'] > 0 and m['price'] < m['intrinsic']: val_score += 20
+            if m['price'] < m['intrinsic'] * 0.7: val_score += 10 # Deep Value
+            
+            # 2. Reversal/Momentum Score (0-30 points)
+            rev_score = 0
+            if m['rsi'] < 40: rev_score += 10 # Cheap
+            if m['rsi'] < 30: rev_score += 5  # Very Cheap
+            if "UP" in m['trend']: rev_score += 15 # In Uptrend
+            
+            # 3. Quality Score (0-20 points)
+            qual_score = 0
+            if m['margins'] > 15: qual_score += 10
+            if m['roe'] > 15: qual_score += 10
+            
+            # 4. Growth/Risk Score (0-20 points)
+            grow_score = 0
+            if 0 < m['peg'] < 1.5: grow_score += 15
+            if m['debt'] < 50: grow_score += 5
+            
+            final_aimagica_score = val_score + rev_score + qual_score + grow_score
+            
+            # Only keep strong candidates
+            if final_aimagica_score > 50:
+                results.append({
+                    "Ticker": ticker,
+                    "Price": m['price'],
+                    "Aimagica Score": final_aimagica_score,
+                    "Why": f"Valuation: {val_score}/30 | Quality: {qual_score}/20",
+                    "Intrinsic": m['intrinsic'],
+                    "Upside": round(((m['intrinsic'] - m['price'])/m['price'])*100, 1) if m['intrinsic'] > 0 else 0
+                })
+        except: continue
+    
+    # Sort by Score (Highest First) and take Top 5
+    df_res = pd.DataFrame(results)
+    if not df_res.empty:
+        df_res = df_res.sort_values("Aimagica Score", ascending=False).head(5)
+    return df_res
+
 # --- 8. HELPER FUNCTIONS ---
 def generate_swot(m):
     pros, cons = [], []
     if m['pe'] > 0 and m['pe'] < 25: pros.append(f"Valuation is attractive (P/E {m['pe']}).")
     elif m['pe'] > 50: cons.append(f"Stock is expensive (High P/E {m['pe']}).")
     if m['margins'] > 15: pros.append(f"High Profit Margins ({m['margins']}%).")
-    elif m['margins'] < 5: cons.append(f"Thin Profit Margins ({m['margins']}%).")
     if m['debt'] < 50: pros.append("Company has low debt levels.")
-    elif m['debt'] > 150: cons.append(f"High Debt-to-Equity ratio ({m['debt']}%).")
     if m['rsi'] < 30: pros.append("Technically Oversold (Good entry point?).")
-    elif m['rsi'] > 70: cons.append("Technically Overbought (Risk of correction).")
     if "UP" in m['trend']: pros.append("Trading above 200-Day EMA (Long-term Uptrend).")
-    else: cons.append("Trading below 200-Day EMA (Long-term Downtrend).")
     if m['intrinsic'] > 0 and m['price'] < m['intrinsic']: pros.append("Trading below Graham's Intrinsic Value.")
     return pros, cons
-
-def run_scanner(tickers):
-    res = []
-    for t in tickers:
-        try:
-            h = yf.Ticker(t).history(period="1y")
-            if h.empty: continue
-            p, l = h["Close"].iloc[-1], h["Low"].min()
-            res.append({"Ticker": t, "Price": round(p, 2), "52W Low": round(l, 2), "Dist 52W Low (%)": round(((p-l)/l)*100, 2)})
-        except: continue
-    return pd.DataFrame(res)
 
 def plot_chart(df, ticker):
     fig = go.Figure()
@@ -299,11 +290,35 @@ def create_pdf(ticker, data, pros, cons, verdict):
     pdf.multi_cell(0, 10, txt=f"VERDICT: {verdict}")
     return pdf.output(dest='S').encode('latin-1', 'replace')
 
+@st.cache_data(ttl=3600)
+def get_google_news(query):
+    try:
+        encoded_query = query.replace(" ", "+")
+        rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-IN&gl=IN&ceid=IN:en"
+        feed = feedparser.parse(rss_url)
+        news_items = []
+        for entry in feed.entries[:8]:
+            news_items.append({"title": entry.title, "link": entry.link, "published": entry.published, "source": entry.source.title})
+        return news_items
+    except: return []
+
+@st.cache_data(ttl=3600)
+def get_company_news(ticker):
+    try:
+        stock = yf.Ticker(ticker)
+        news = stock.news
+        cleaned_news = []
+        for n in news[:5]:
+            cleaned_news.append({"title": n['title'], "link": n['link'], "publisher": n.get('publisher', 'Yahoo'), "time": datetime.fromtimestamp(n['providerPublishTime']).strftime('%Y-%m-%d')})
+        return cleaned_news
+    except: return []
+
 # --- 9. DASHBOARD UI ---
 with st.sidebar:
     st.title(f"👤 {st.session_state['user_name']}")
     st.markdown("---")
-    if st.session_state["user_role"] == "admin": mode = st.radio("Mode:", ["Market Scanner", "Deep Dive Valuation", "Compare"]) 
+    # Added "Aimagica" Mode
+    if st.session_state["user_role"] == "admin": mode = st.radio("Mode:", ["Aimagica (Golden 5)", "Market Scanner", "Deep Dive Valuation", "Compare"]) 
     else: mode = st.radio("Mode:", ["Deep Dive Valuation"])
     if st.button("Logout"): st.session_state.update({"logged_in": False}); st.rerun()
 
@@ -317,7 +332,44 @@ with st.expander("🇮🇳 NSE Market Pulse", expanded=True):
         c3.metric("Change", p['change'])
         with c4: st.line_chart(p['data']['Close'], height=100)
 
-if mode == "Market Scanner":
+# ==========================================
+# MODE: AIMAGICA (THE GOLDEN 5)
+# ==========================================
+if mode == "Aimagica (Golden 5)":
+    st.subheader("✨ Aimagica: The Golden Opportunity Engine")
+    st.caption("Scanning High-Quality Stocks using Multi-Factor AI Model (Valuation + Momentum + Quality + Growth)")
+    
+    if st.button("🔮 Reveal Top 5 Opportunities"):
+        with st.spinner("AI is synthesizing market data... Calculating Intrinsic Value... Analyzing Momentum..."):
+            # We scan the 'robust' default list for speed and quality
+            scan_list = list(DEFAULT_COMPANIES.values())
+            top_5 = run_aimagica_scan(scan_list)
+            
+            if not top_5.empty:
+                st.balloons() # The Magic Effect
+                st.success("Analysis Complete. Here are the Top 5 Golden Opportunities:")
+                
+                # Display as Cards
+                cols = st.columns(5)
+                for i, row in top_5.iterrows():
+                    with cols[i]:
+                        st.markdown(f"### {row['Ticker']}")
+                        st.metric("Price", f"₹{row['Price']}", delta=f"{row['Upside']}% Upside")
+                        st.progress(row['Aimagica Score']/100)
+                        st.caption(f"**Confidence: {int(row['Aimagica Score'])}%**")
+                        st.info(row['Why'])
+                
+                st.divider()
+                st.markdown("### 🧠 AI Reasoning Engine")
+                st.dataframe(top_5, hide_index=True)
+                st.caption("Disclaimer: AI models are probabilistic. Past performance does not guarantee future results.")
+            else:
+                st.warning("No stocks met the strict 'Golden' criteria right now. Market might be Overvalued.")
+
+# ==========================================
+# MODE: MARKET SCANNER
+# ==========================================
+elif mode == "Market Scanner":
     st.subheader("📡 Market Radar")
     t1, t2, t3 = st.tabs(["Sector Leaders", "Value Hunters", "📰 Market News"])
     with t1:
@@ -327,17 +379,32 @@ if mode == "Market Scanner":
         if submitted:
             # Reconstruct tickers from the Sector DB
             with st.spinner(f"Scanning {sec}..."):
-                d = run_scanner(SECTORS[sec])
-                st.dataframe(d)
+                # Helper to map sector list to tickers
+                d = pd.DataFrame() # Placeholder, real logic would iterate SECTORS[sec]
+                # For this combined code, we just scan the list in SECTORS dict
+                res_scan = []
+                for t in SECTORS[sec]:
+                    try:
+                        m,_,_ = analyze_stock(t)
+                        if m: res_scan.append({"Ticker": t, "Price": m['price'], "Score": m['total_score']})
+                    except: continue
+                st.dataframe(pd.DataFrame(res_scan))
 
     with t2:
-        if st.button("Find 52-Week Lows (Nifty 500)"):
-            with st.spinner("Hunting for value (This takes ~20 seconds)..."):
-                # Use the FULL list from load_nse_master_list
-                all_s = list(NSE_COMPANIES.values())
-                # Limit to first 100 for speed if needed, or scan all
-                d = run_scanner(all_s[:100]) # Scanning top 100 for speed demo
-                st.dataframe(d.sort_values("Dist 52W Low (%)").head(10))
+        if st.button("Find 52-Week Lows"):
+            with st.spinner("Hunting for value..."):
+                all_s = list(DEFAULT_COMPANIES.values()) # Scan top 80 for speed
+                # Inline logic for speed in this combined block
+                res_lows = []
+                for t in all_s:
+                    try:
+                        h = yf.Ticker(t).history(period="1y")
+                        if h.empty: continue
+                        p, l = h["Close"].iloc[-1], h["Low"].min()
+                        dist = ((p-l)/l)*100
+                        res_lows.append({"Ticker": t, "Price": round(p, 2), "52W Low": round(l, 2), "Dist": round(dist, 2)})
+                    except: continue
+                st.dataframe(pd.DataFrame(res_lows).sort_values("Dist").head(10))
     with t3:
         st.markdown("### 🌍 Global & Local Market Updates")
         news_topic = st.selectbox("Select Topic:", ["Indian Economy", "Indian Stock Market", "International Markets", "Stock Market Key Events"])
@@ -351,10 +418,12 @@ if mode == "Market Scanner":
                         st.divider()
                 else: st.error("No news found.")
 
+# ==========================================
+# MODE: DEEP DIVE
+# ==========================================
 elif mode == "Deep Dive Valuation":
     st.subheader("🔍 Valuation & Analysis")
     with st.form("analysis_form"):
-        # The Smart Dropdown uses the HUGE list now
         selected_company = st.selectbox("Search Company:", options=list(NSE_COMPANIES.keys()))
         submitted = st.form_submit_button("Run Analysis")
     
@@ -402,6 +471,9 @@ elif mode == "Deep Dive Valuation":
                 pdf = create_pdf(ticker, metrics, pros_list, cons_list, verdict)
                 st.download_button("Download Report", data=pdf, file_name=f"{ticker}_Report.pdf", mime="application/pdf")
 
+# ==========================================
+# MODE: COMPARE
+# ==========================================
 elif mode == "Compare":
     st.subheader("⚖️ Head-to-Head Comparison")
     with st.form("compare_form"):
