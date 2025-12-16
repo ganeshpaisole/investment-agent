@@ -3,3 +3,4 @@ yfinance
 ta
 pandas
 fpdf
+plotly
