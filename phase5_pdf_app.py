@@ -1,6 +1,7 @@
 import streamlit as st
 import yfinance as yf
 import pandas as pd
+import numpy as np
 import math
 import plotly.graph_objects as go
 from ta.momentum import RSIIndicator, StochasticOscillator
@@ -53,7 +54,7 @@ def get_market_pulse():
         return {"price": round(price, 2), "change": round(price-prev, 2), "pct": round(((price-prev)/prev)*100, 2), "trend": "BULLISH 🐂" if price > df["Close"].mean() else "BEARISH 🐻", "data": df}
     except: return None
 
-# --- 6. CORE ANALYTICS (Debugged) ---
+# --- 6. CORE ANALYTICS ---
 @st.cache_data(ttl=24*3600)
 def analyze_stock(ticker):
     try:
@@ -83,9 +84,7 @@ def analyze_stock(ticker):
         debt = info.get('debtToEquity', 0) or 0
         roe = info.get('returnOnEquity', 0) or 0
         
-        # --- FIXED: Graham Number Safety Check ---
         intrinsic_value = 0
-        # Only calculate if BOTH are positive to avoid Math Domain Error (Sqrt of negative)
         if eps > 0 and book_value > 0:
             intrinsic_value = math.sqrt(22.5 * eps * book_value)
         
@@ -120,10 +119,37 @@ def analyze_stock(ticker):
         }
         return metrics, df, info
     except Exception as e:
-        # Return the error message to help debug
         return None, None, str(e)
 
-# --- 7. HELPER FUNCTIONS ---
+# --- 7. HELPER FUNCTIONS (SWOT & SCANNER) ---
+
+def generate_swot(m):
+    """Generates Rule-Based Pros & Cons based on data."""
+    pros = []
+    cons = []
+    
+    # Analyze Fundamentals
+    if m['pe'] > 0 and m['pe'] < 25: pros.append(f"Valuation is attractive (P/E {m['pe']}).")
+    elif m['pe'] > 50: cons.append(f"Stock is expensive (High P/E {m['pe']}).")
+    
+    if m['margins'] > 15: pros.append(f"High Profit Margins ({m['margins']}%).")
+    elif m['margins'] < 5: cons.append(f"Thin Profit Margins ({m['margins']}%).")
+    
+    if m['debt'] < 50: pros.append("Company has low debt levels.")
+    elif m['debt'] > 150: cons.append(f"High Debt-to-Equity ratio ({m['debt']}%).")
+    
+    # Analyze Technicals
+    if m['rsi'] < 30: pros.append("Technically Oversold (Good entry point?).")
+    elif m['rsi'] > 70: cons.append("Technically Overbought (Risk of correction).")
+    
+    if "UP" in m['trend']: pros.append("Trading above 200-Day EMA (Long-term Uptrend).")
+    else: cons.append("Trading below 200-Day EMA (Long-term Downtrend).")
+    
+    if m['intrinsic'] > 0 and m['price'] < m['intrinsic']:
+        pros.append("Trading below Graham's Intrinsic Value.")
+    
+    return pros, cons
+
 def run_scanner(tickers):
     res = []
     for t in tickers:
@@ -135,45 +161,98 @@ def run_scanner(tickers):
         except: continue
     return pd.DataFrame(res)
 
+# --- 8. CHART WITH POLYNOMIAL FORECAST ---
 def plot_chart(df, ticker):
     fig = go.Figure()
-    fig.add_trace(go.Candlestick(x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name='Price'))
+    
+    # History
+    fig.add_trace(go.Candlestick(x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name='History'))
     fig.add_trace(go.Scatter(x=df.index, y=df['BB_High'], line=dict(color='gray', width=1), name='BB Upper'))
     fig.add_trace(go.Scatter(x=df.index, y=df['BB_Low'], line=dict(color='gray', width=1), name='BB Lower'))
-    fig.update_layout(title=f"{ticker} - Analysis", xaxis_rangeslider_visible=False, height=500)
+    
+    # Advanced Forecasting Logic (Polynomial Regression Degree 2)
+    try:
+        lookback = 90 # Look further back to catch the curve
+        forecast_days = 30
+        
+        recent_df = df.tail(lookback).copy()
+        if len(recent_df) > 20:
+            x = np.arange(len(recent_df))
+            y = recent_df['Close'].values
+            
+            # POLYNOMIAL FIT (Degree 2 allows for curves)
+            coeffs = np.polyfit(x, y, 2) 
+            poly_curve = np.poly1d(coeffs)
+            
+            # Project Future
+            future_x = np.arange(len(recent_df), len(recent_df) + forecast_days)
+            future_prices = poly_curve(future_x)
+            
+            # Volatility Adjustment (Standard Deviation)
+            residuals = y - poly_curve(x)
+            std_dev = np.std(residuals)
+            
+            # Fan Chart (Confidence Intervals)
+            upper_band = future_prices + (1.5 * std_dev)
+            lower_band = future_prices - (1.5 * std_dev)
+            
+            # Dates
+            last_date = df.index[-1]
+            future_dates = pd.date_range(start=last_date, periods=forecast_days + 1)[1:]
+            
+            # Plot Curve
+            fig.add_trace(go.Scatter(x=future_dates, y=future_prices, mode='lines', line=dict(color='#FFA500', width=2, dash='dash'), name='AI Projected Path'))
+            
+            # Plot Zone
+            fig.add_trace(go.Scatter(x=future_dates, y=upper_band, mode='lines', line=dict(width=0), showlegend=False))
+            fig.add_trace(go.Scatter(x=future_dates, y=lower_band, mode='lines', line=dict(width=0), fill='tonexty', fillcolor='rgba(255, 165, 0, 0.2)', name='Probable Range'))
+            
+            # Annotation
+            final_price = round(future_prices[-1], 2)
+            fig.add_annotation(x=future_dates[-1], y=final_price, text=f"Target: {final_price}", showarrow=True, arrowhead=1)
+            
+    except Exception as e:
+        print(f"Forecast Error: {e}")
+
+    fig.update_layout(title=f"{ticker} - Analysis & Momentum Forecast", xaxis_rangeslider_visible=False, height=600)
     return fig
 
-def create_pdf(ticker, data, text):
+def create_pdf(ticker, data, pros, cons, verdict):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
     pdf.cell(200, 10, txt=f"Investment Memo: {ticker}", ln=True, align='C')
     pdf.ln(10)
     
-    fair_val_text = f"Fair Value (Graham): Rs. {data['intrinsic']}" if data['intrinsic'] > 0 else "Fair Value: N/A"
     clean_price = str(data['price']).replace("₹", "")
-    pdf.cell(200, 10, txt=f"Price: Rs. {clean_price} | {fair_val_text}", ln=True)
+    pdf.cell(200, 10, txt=f"Price: Rs. {clean_price} | Score: {data['total_score']}/10", ln=True)
+    pdf.ln(5)
+    
+    pdf.set_font("Arial", 'B', 10)
+    pdf.cell(200, 10, txt="PROS (Strengths):", ln=True)
+    pdf.set_font("Arial", size=10)
+    for p in pros: pdf.cell(200, 6, txt=f"- {p}", ln=True)
+    
+    pdf.ln(5)
+    pdf.set_font("Arial", 'B', 10)
+    pdf.cell(200, 10, txt="CONS (Risks):", ln=True)
+    pdf.set_font("Arial", size=10)
+    for c in cons: pdf.cell(200, 6, txt=f"- {c}", ln=True)
     
     pdf.ln(10)
-    clean_text = text.encode('latin-1', 'replace').decode('latin-1')
-    pdf.multi_cell(0, 10, txt=clean_text)
+    pdf.set_font("Arial", 'I', 10)
+    pdf.multi_cell(0, 10, txt=f"VERDICT: {verdict}")
     
-    pdf.ln(20)
-    pdf.set_font("Arial", 'I', 8)
-    pdf.multi_cell(0, 5, txt="Generated by AI Agent. Educational Use Only.")
-    return pdf.output(dest='S').encode('latin-1')
+    return pdf.output(dest='S').encode('latin-1', 'replace')
 
 # --- 8. DASHBOARD UI ---
 with st.sidebar:
     st.title(f"👤 {st.session_state['user_name']}")
     st.markdown("---")
-    
-    # Mode Selection
     if st.session_state["user_role"] == "admin":
         mode = st.radio("Mode:", ["Market Scanner", "Deep Dive Valuation", "Compare"]) 
     else:
         mode = st.radio("Mode:", ["Deep Dive Valuation"])
-        
     if st.button("Logout"): 
         st.session_state.update({"logged_in": False}) 
         st.rerun()
@@ -188,23 +267,17 @@ with st.expander("🇮🇳 NSE Market Pulse", expanded=True):
         c3.metric("Change", p['change'])
         with c4: st.line_chart(p['data']['Close'], height=100)
 
-# ==========================================
-# MODE 1: MARKET SCANNER
-# ==========================================
 if mode == "Market Scanner":
     st.subheader("📡 Market Radar")
     t1, t2 = st.tabs(["Sector Leaders", "Value Hunters"])
-    
     with t1:
         with st.form("scanner_form"):
             sec = st.selectbox("Select Sector:", list(SECTORS.keys()))
             submitted = st.form_submit_button("Scan Sector")
-            
         if submitted:
             with st.spinner(f"Scanning {sec}..."):
                 d = run_scanner(SECTORS[sec])
                 st.dataframe(d)
-
     with t2:
         if st.button("Find 52-Week Lows"):
             with st.spinner("Hunting for value..."):
@@ -212,100 +285,71 @@ if mode == "Market Scanner":
                 d = run_scanner(all_s)
                 st.dataframe(d.sort_values("Dist 52W Low (%)").head(10))
 
-# ==========================================
-# MODE 2: DEEP DIVE (With Debugging)
-# ==========================================
 elif mode == "Deep Dive Valuation":
     st.subheader("🔍 Valuation & Analysis")
-    
-    # 1. INPUT FORM (Fixes the "Button doesn't work" issue)
     with st.form("analysis_form"):
         ticker = st.text_input("Enter Ticker (e.g. RELIANCE.NS):", value="RELIANCE.NS")
         submitted = st.form_submit_button("Run Analysis")
     
-    # 2. RESULT DISPLAY
     if submitted:
         with st.spinner(f"Analyzing {ticker}..."):
             metrics, history, info = analyze_stock(ticker)
-            
-            # ERROR HANDLING
             if metrics is None:
-                st.error(f"❌ Could not analyze {ticker}.")
-                st.warning("Possible reasons: 1. Invalid Ticker 2. Stock Delisted 3. Yahoo Finance Timeout.")
-                if info: st.caption(f"Debug Info: {info}") # Show specific error if captured
-            
+                st.error(f"❌ Could not analyze {ticker}. Check ticker symbol.")
             else:
-                # SUCCESS - SHOW DASHBOARD
+                # Generate SWOC
+                pros_list, cons_list = generate_swot(metrics)
+                
                 c1, c2, c3 = st.columns(3)
                 c1.metric("Overall Score", f"{metrics['total_score']}/10")
                 c2.metric("Tech Strength", f"{metrics['tech_score']}/5")
                 c3.metric("Fund Health", f"{metrics['fund_score']}/5")
                 
-                # TABS
-                tab1, tab2, tab3 = st.tabs(["📈 Chart", "🎩 Warren Buffett Way", "🏢 Financials"])
+                # --- NEW TABS INCLUDING PROS & CONS ---
+                tab1, tab2, tab3, tab4 = st.tabs(["📈 Forecast Chart", "✅ Pros & Cons", "🎩 Warren Buffett Way", "🏢 Financials"])
                 
                 with tab1: 
                     st.plotly_chart(plot_chart(history, ticker), use_container_width=True)
+                    st.caption("Algorithm: Polynomial Regression (Deg 2). Detects Curves & Acceleration in Trends.")
                 
-                # WARREN BUFFETT TAB
                 with tab2:
+                    c_pros, c_cons = st.columns(2)
+                    with c_pros:
+                        st.success("✅ **STRENGTHS (Pros)**")
+                        for p in pros_list: st.write(f"• {p}")
+                    with c_cons:
+                        st.error("❌ **RISKS (Cons)**")
+                        for c in cons_list: st.write(f"• {c}")
+                        if not cons_list: st.write("• No major red flags detected.")
+
+                with tab3:
                     st.markdown("### 🎩 The Warren Buffett Valuation Model")
-                    st.caption("Based on Benjamin Graham's Intrinsic Value Formula.")
-                    
                     if metrics['intrinsic'] > 0:
                         col_a, col_b = st.columns(2)
                         col_a.metric("Current Market Price", f"₹{metrics['price']}")
                         col_b.metric("Calculated Fair Value", f"₹{metrics['intrinsic']}", 
                              delta=f"{round(((metrics['intrinsic']-metrics['price'])/metrics['price'])*100, 1)}% Potential" if metrics['intrinsic'] > metrics['price'] else "Premium")
-                        
-                        st.divider()
-                        # Verdict Logic
-                        if metrics['price'] < metrics['intrinsic'] * 0.7:
-                            st.success(f"💎 **DEEP VALUE BUY:** Trading significantly below fair value (₹{metrics['intrinsic']}).")
-                        elif metrics['price'] < metrics['intrinsic']:
-                            st.success(f"✅ **UNDERVALUED:** Price is below fair value. Good entry.")
-                        else:
-                            st.warning(f"⚠️ **OVERVALUED:** Price is above Graham's fair value (₹{metrics['intrinsic']}).")
-                    else:
-                        st.error("⚠️ Cannot Calculate Intrinsic Value.")
-                        st.info("Reason: This company likely has **Negative Earnings** or **Negative Book Value**.")
-                        st.write(f"EPS: {metrics['eps']} | Book Value: {metrics['book_value']}")
+                        if metrics['price'] < metrics['intrinsic']: st.success(f"✅ UNDERVALUED.")
+                        else: st.warning(f"⚠️ OVERVALUED.")
+                    else: st.error("⚠️ Cannot Calculate Intrinsic Value.")
 
-                with tab3:
-                    st.write(info.get('longBusinessSummary', 'No summary available.'))
+                with tab4: st.write(info.get('longBusinessSummary', 'No summary available.'))
                 
-                # PDF Generation
                 verdict = f"Fair Value: {metrics['intrinsic']}. Score: {metrics['total_score']}/10."
-                pdf = create_pdf(ticker, metrics, verdict)
+                pdf = create_pdf(ticker, metrics, pros_list, cons_list, verdict)
                 st.download_button("Download PDF Report", data=pdf, file_name=f"{ticker}_Report.pdf", mime="application/pdf")
 
-# ==========================================
-# MODE 3: COMPARE (Fixed)
-# ==========================================
 elif mode == "Compare":
     st.subheader("⚖️ Head-to-Head Comparison")
-    
     with st.form("compare_form"):
         c1, c2 = st.columns(2)
-        s1 = c1.text_input("Stock A", "TCS.NS")
-        s2 = c2.text_input("Stock B", "INFY.NS")
+        s1 = c1.text_input("Stock A", "TCS.NS"); s2 = c2.text_input("B", "INFY.NS")
         submitted = st.form_submit_button("Compare Stocks")
-    
     if submitted:
-        m1, _, _ = analyze_stock(s1)
-        m2, _, _ = analyze_stock(s2)
-        
+        m1, _, _ = analyze_stock(s1); m2, _, _ = analyze_stock(s2)
         if m1 and m2:
             col1, col2 = st.columns(2)
-            
-            with col1:
-                st.metric(s1, f"{m1['total_score']}/10", delta=f"Fair Val: {m1['intrinsic']}")
-                st.info(f"Tech: {m1['tech_score']} | Fund: {m1['fund_score']}")
-            
-            with col2:
-                st.metric(s2, f"{m2['total_score']}/10", delta=f"Fair Val: {m2['intrinsic']}")
-                st.info(f"Tech: {m2['tech_score']} | Fund: {m2['fund_score']}")
-                
+            with col1: st.metric(s1, f"{m1['total_score']}/10"); st.caption(f"Fair Val: {m1['intrinsic']}")
+            with col2: st.metric(s2, f"{m2['total_score']}/10"); st.caption(f"Fair Val: {m2['intrinsic']}")
             st.success(f"🏆 Winner: {s1 if m1['total_score'] > m2['total_score'] else s2}")
-        else:
-            st.error("Could not fetch data. Please check if tickers are correct.")
+        else: st.error("Check tickers.")
