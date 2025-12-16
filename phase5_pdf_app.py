@@ -184,4 +184,4 @@ if mode == "Deep Dive":
 # === MODE 2: COMPARISON ===
 elif mode == "Competitor Comparison":
     st.subheader("⚖️ Quick Benchmarking")
-    c1, c2 = st.columns(2
+    c1, c2 = st.columns(2)
