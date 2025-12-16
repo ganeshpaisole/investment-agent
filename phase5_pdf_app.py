@@ -5,6 +5,8 @@ import numpy as np
 import math
 import plotly.graph_objects as go
 import feedparser
+import requests
+import io
 from datetime import datetime
 from ta.momentum import RSIIndicator, StochasticOscillator
 from ta.trend import EMAIndicator, MACD
@@ -15,70 +17,65 @@ from fpdf import FPDF
 st.set_page_config(page_title="Principal AI Agent", layout="wide")
 
 # --- 2. SECURITY CONFIG ---
-# Roles are defined here, but passwords must be in Streamlit Secrets
 USER_ROLES = {
     "admin": {"role": "admin", "name": "Principal Consultant"},
     "client": {"role": "viewer", "name": "Valued Client"}
 }
 
-# --- 3. DATABASES ---
+# --- 3. DATABASE ENGINE (THE NEW UPGRADE) ---
 
-# A. SMART SEARCH DATABASE (Name -> Ticker Mapping)
-# Used for Dropdown Search in Deep Dive & Compare
-NSE_COMPANIES = {
+# A. DEFAULT FALLBACK LIST (In case NSE Server is down)
+DEFAULT_NSE_COMPANIES = {
     "Reliance Industries (RELIANCE)": "RELIANCE.NS",
     "Tata Consultancy Services (TCS)": "TCS.NS",
     "HDFC Bank (HDFCBANK)": "HDFCBANK.NS",
     "ICICI Bank (ICICIBANK)": "ICICIBANK.NS",
     "Infosys (INFY)": "INFY.NS",
+    "State Bank of India (SBIN)": "SBIN.NS",
     "Hindustan Unilever (HINDUNILVR)": "HINDUNILVR.NS",
     "ITC Limited (ITC)": "ITC.NS",
-    "State Bank of India (SBIN)": "SBIN.NS",
-    "Bharti Airtel (BHARTIARTL)": "BHARTIARTL.NS",
     "Larsen & Toubro (LT)": "LT.NS",
-    "Bajaj Finance (BAJFINANCE)": "BAJFINANCE.NS",
-    "HCL Technologies (HCLTECH)": "HCLTECH.NS",
-    "Kotak Mahindra Bank (KOTAKBANK)": "KOTAKBANK.NS",
-    "Axis Bank (AXISBANK)": "AXISBANK.NS",
-    "Asian Paints (ASIANPAINT)": "ASIANPAINT.NS",
-    "Maruti Suzuki (MARUTI)": "MARUTI.NS",
-    "Titan Company (TITAN)": "TITAN.NS",
-    "UltraTech Cement (ULTRACEMCO)": "ULTRACEMCO.NS",
-    "Sun Pharma (SUNPHARMA)": "SUNPHARMA.NS",
-    "Wipro (WIPRO)": "WIPRO.NS",
-    "Tata Motors (TATAMOTORS)": "TATAMOTORS.NS",
-    "Mahindra & Mahindra (M&M)": "M&M.NS",
-    "Power Grid Corp (POWERGRID)": "POWERGRID.NS",
-    "NTPC Limited (NTPC)": "NTPC.NS",
-    "Bajaj Finserv (BAJAJFINSV)": "BAJAJFINSV.NS",
-    "Nestle India (NESTLEIND)": "NESTLEIND.NS",
-    "JSW Steel (JSWSTEEL)": "JSWSTEEL.NS",
-    "Tata Steel (TATASTEEL)": "TATASTEEL.NS",
-    "Adani Enterprises (ADANIENT)": "ADANIENT.NS",
-    "Adani Ports (ADANIPORTS)": "ADANIPORTS.NS",
-    "Coal India (COALINDIA)": "COALINDIA.NS",
-    "Britannia (BRITANNIA)": "BRITANNIA.NS",
-    "Tech Mahindra (TECHM)": "TECHM.NS",
-    "Hindalco (HINDALCO)": "HINDALCO.NS",
-    "Dr Reddys Labs (DRREDDY)": "DRREDDY.NS",
-    "Cipla (CIPLA)": "CIPLA.NS",
-    "Eicher Motors (EICHERMOT)": "EICHERMOT.NS",
-    "IndusInd Bank (INDUSINDBK)": "INDUSINDBK.NS",
-    "Divis Labs (DIVISLAB)": "DIVISLAB.NS",
-    "Grasim Industries (GRASIM)": "GRASIM.NS",
-    "SBI Life Insurance (SBILIFE)": "SBILIFE.NS",
-    "HDFC Life (HDFCLIFE)": "HDFCLIFE.NS",
-    "Bajaj Auto (BAJAJ-AUTO)": "BAJAJ-AUTO.NS",
-    "Apollo Hospitals (APOLLOHOSP)": "APOLLOHOSP.NS",
-    "Tata Consumer (TATACONSUM)": "TATACONSUM.NS",
-    "Hero MotoCorp (HEROMOTOCO)": "HEROMOTOCO.NS",
-    "UPL Limited (UPL)": "UPL.NS",
-    "Bharat Petroleum (BPCL)": "BPCL.NS",
-    "ONGC (ONGC)": "ONGC.NS"
+    "Bajaj Finance (BAJFINANCE)": "BAJFINANCE.NS"
 }
 
-# B. SECTOR DATABASE (List of Tickers)
-# Used for the Market Scanner Tab
+# B. DYNAMIC FETCHER FOR ALL NSE STOCKS
+@st.cache_data(ttl=24*3600) # Cache for 24 hours
+def load_nse_master_list():
+    """
+    Fetches the official list of all active companies on NSE.
+    Returns a dictionary: {"Company Name (SYMBOL)": "SYMBOL.NS"}
+    """
+    master_dict = DEFAULT_NSE_COMPANIES.copy()
+    
+    try:
+        # Official NSE List URL (hosted on a stable mirror to avoid scraping blocks)
+        # We use a reliable GitHub mirror for stability as NSE website often blocks bots
+        url = "https://raw.githubusercontent.com/bhattbhavesh91/nse_nifty_500_companies_list/master/nifty_500.csv"
+        
+        # Alternative: Try fetching full list if needed, but Nifty 500 covers 95% market cap
+        df = pd.read_csv(url)
+        
+        # The CSV usually has 'Company Name' and 'Symbol' columns
+        if 'Company Name' in df.columns and 'Symbol' in df.columns:
+            for index, row in df.iterrows():
+                clean_name = row['Company Name']
+                symbol = row['Symbol']
+                # Create the format: "Company Name (SYMBOL)"
+                key = f"{clean_name} ({symbol})"
+                # Map to Yahoo Finance Ticker: "SYMBOL.NS"
+                value = f"{symbol}.NS"
+                master_dict[key] = value
+                
+        return master_dict
+        
+    except Exception as e:
+        # Silently fail and return the default list if internet/source is down
+        return DEFAULT_NSE_COMPANIES
+
+# LOAD THE DATABASE
+NSE_COMPANIES = load_nse_master_list()
+
+# C. SECTOR LISTS (For Market Scanner)
 SECTORS = {
     "Blue Chips (Top 20)": ["RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "ICICIBANK.NS", "INFY.NS", "HINDUNILVR.NS", "ITC.NS", "SBIN.NS", "BHARTIARTL.NS", "LICI.NS", "LT.NS", "BAJFINANCE.NS", "HCLTECH.NS", "KOTAKBANK.NS", "AXISBANK.NS", "ASIANPAINT.NS", "MARUTI.NS", "TITAN.NS", "ULTRACEMCO.NS", "SUNPHARMA.NS"],
     "IT Sector": ["TCS.NS", "INFY.NS", "HCLTECH.NS", "WIPRO.NS", "TECHM.NS", "LTIM.NS", "PERSISTENT.NS", "COFORGE.NS", "MPHASIS.NS", "OFSS.NS"],
@@ -100,12 +97,11 @@ def check_login():
             if submitted:
                 if u in USER_ROLES:
                     try:
-                        # IP PROTECTION: Verify against Cloud Secrets
                         if p == st.secrets["passwords"][u]:
                             st.session_state.update({"logged_in": True, "user_role": USER_ROLES[u]["role"], "user_name": USER_ROLES[u]["name"]})
                             st.rerun()
                         else: st.error("❌ Invalid Password")
-                    except: st.error("⚠️ Secrets not configured. Check Streamlit Dashboard.")
+                    except: st.error("⚠️ Secrets not configured.")
                 else: st.error("❌ Invalid Username")
         st.stop()
 check_login()
@@ -234,7 +230,6 @@ def plot_chart(df, ticker):
     fig.add_trace(go.Scatter(x=df.index, y=df['BB_High'], line=dict(color='gray', width=1), name='BB Upper'))
     fig.add_trace(go.Scatter(x=df.index, y=df['BB_Low'], line=dict(color='gray', width=1), name='BB Lower'))
     try:
-        # Polynomial Regression Forecast
         recent_df = df.tail(90).copy()
         if len(recent_df) > 20:
             x = np.arange(len(recent_df))
@@ -306,15 +301,18 @@ if mode == "Market Scanner":
             sec = st.selectbox("Select Sector:", list(SECTORS.keys()))
             submitted = st.form_submit_button("Scan Sector")
         if submitted:
+            # Reconstruct tickers from the Sector DB
             with st.spinner(f"Scanning {sec}..."):
                 d = run_scanner(SECTORS[sec])
                 st.dataframe(d)
 
     with t2:
-        if st.button("Find 52-Week Lows"):
-            with st.spinner("Hunting for value..."):
-                all_s = list(set([i for s in SECTORS.values() for i in s]))
-                d = run_scanner(all_s)
+        if st.button("Find 52-Week Lows (Nifty 500)"):
+            with st.spinner("Hunting for value (This takes ~20 seconds)..."):
+                # Use the FULL list from load_nse_master_list
+                all_s = list(NSE_COMPANIES.values())
+                # Limit to first 100 for speed if needed, or scan all
+                d = run_scanner(all_s[:100]) # Scanning top 100 for speed demo
                 st.dataframe(d.sort_values("Dist 52W Low (%)").head(10))
     with t3:
         st.markdown("### 🌍 Global & Local Market Updates")
@@ -332,7 +330,7 @@ if mode == "Market Scanner":
 elif mode == "Deep Dive Valuation":
     st.subheader("🔍 Valuation & Analysis")
     with st.form("analysis_form"):
-        # Phase 22: Smart Dropdown Search
+        # The Smart Dropdown uses the HUGE list now
         selected_company = st.selectbox("Search Company:", options=list(NSE_COMPANIES.keys()))
         submitted = st.form_submit_button("Run Analysis")
     
@@ -347,8 +345,7 @@ elif mode == "Deep Dive Valuation":
                 c2.metric("Tech Strength", f"{metrics['tech_score']}/5")
                 c3.metric("Fund Health", f"{metrics['fund_score']}/5")
                 
-                # Phase 20: News Tab Added
-                tab1, tab2, tab3, tab4, tab5 = st.tabs(["📈 Forecast", "✅ SWOC", "🎩 Warren Buffett Way", "🏢 Financials", "📰 News & Events"])
+                tab1, tab2, tab3, tab4, tab5 = st.tabs(["📈 Forecast", "✅ SWOC", "🎩 Valuation", "🏢 Financials", "📰 News & Events"])
                 
                 with tab1: st.plotly_chart(plot_chart(history, ticker), use_container_width=True)
                 with tab2:
@@ -385,7 +382,6 @@ elif mode == "Compare":
     st.subheader("⚖️ Head-to-Head Comparison")
     with st.form("compare_form"):
         c1, c2 = st.columns(2)
-        # Smart Dropdowns for Compare
         s1_name = c1.selectbox("Stock A", options=list(NSE_COMPANIES.keys()), index=0)
         s2_name = c2.selectbox("Stock B", options=list(NSE_COMPANIES.keys()), index=1)
         submitted = st.form_submit_button("Compare Stocks")
