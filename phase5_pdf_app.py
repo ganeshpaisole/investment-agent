@@ -22,48 +22,81 @@ USER_ROLES = {
     "client": {"role": "viewer", "name": "Valued Client"}
 }
 
-# --- 3. DATABASE ENGINE (UPDATED: ALL NSE STOCKS) ---
+# --- 3. DATABASE ENGINE (ROBUST EDITION) ---
 
-# A. FALLBACK LIST (Used if live fetch fails)
+# A. EXPANDED FALLBACK LIST (Top 80 Stocks - Guaranteed to work)
+# This list loads INSTANTLY if the internet fetch fails.
 DEFAULT_COMPANIES = {
-    "Reliance Industries": "RELIANCE.NS",
-    "Tata Consultancy Services": "TCS.NS",
-    "HDFC Bank": "HDFCBANK.NS",
-    "Infosys": "INFY.NS",
-    "ITC Limited": "ITC.NS"
+    # --- BLUE CHIPS ---
+    "Reliance Industries": "RELIANCE.NS", "TCS": "TCS.NS", "HDFC Bank": "HDFCBANK.NS",
+    "ICICI Bank": "ICICIBANK.NS", "Infosys": "INFY.NS", "State Bank of India": "SBIN.NS",
+    "Bharti Airtel": "BHARTIARTL.NS", "ITC Ltd": "ITC.NS", "Larsen & Toubro": "LT.NS",
+    "Hindustan Unilever": "HINDUNILVR.NS", "Bajaj Finance": "BAJFINANCE.NS",
+    "Maruti Suzuki": "MARUTI.NS", "Asian Paints": "ASIANPAINT.NS", "Titan Company": "TITAN.NS",
+    "Sun Pharma": "SUNPHARMA.NS", "UltraTech Cement": "ULTRACEMCO.NS", "Kotak Bank": "KOTAKBANK.NS",
+    
+    # --- AUTO ---
+    "Tata Motors": "TATAMOTORS.NS", "Mahindra & Mahindra": "M&M.NS", "Bajaj Auto": "BAJAJ-AUTO.NS",
+    "Eicher Motors": "EICHERMOT.NS", "Hero MotoCorp": "HEROMOTOCO.NS", "TVS Motor": "TVSMOTOR.NS",
+    
+    # --- IT & TECH ---
+    "HCL Tech": "HCLTECH.NS", "Wipro": "WIPRO.NS", "Tech Mahindra": "TECHM.NS",
+    "LTIMindtree": "LTIM.NS", "Persistent Systems": "PERSISTENT.NS", "Zomato": "ZOMATO.NS",
+    "Paytm (One97)": "PAYTM.NS", "PB Fintech (PolicyBazaar)": "POLICYBZR.NS",
+    
+    # --- BANKING & FINANCE ---
+    "Axis Bank": "AXISBANK.NS", "IndusInd Bank": "INDUSINDBK.NS", "Bank of Baroda": "BANKBARODA.NS",
+    "Punjab National Bank": "PNB.NS", "IDFC First Bank": "IDFCFIRSTB.NS", "Bajaj Finserv": "BAJAJFINSV.NS",
+    "Jio Financial": "JIOFIN.NS", "IREDA": "IREDA.NS", "REC Ltd": "REC.NS", "PFC": "PFC.NS",
+    
+    # --- ENERGY & POWER ---
+    "NTPC": "NTPC.NS", "Power Grid": "POWERGRID.NS", "ONGC": "ONGC.NS",
+    "Coal India": "COALINDIA.NS", "Tata Power": "TATAPOWER.NS", "Adani Green": "ADANIGREEN.NS",
+    "Adani Power": "ADANIPOWER.NS", "NHPC": "NHPC.NS", "Suzlon Energy": "SUZLON.NS",
+    
+    # --- METALS & COMMODITIES ---
+    "Tata Steel": "TATASTEEL.NS", "JSW Steel": "JSWSTEEL.NS", "Hindalco": "HINDALCO.NS",
+    "Vedanta": "VEDL.NS", "Jindal Steel": "JINDALSTEL.NS", "NMDC": "NMDC.NS",
+    
+    # --- ADANI GROUP ---
+    "Adani Enterprises": "ADANIENT.NS", "Adani Ports": "ADANIPORTS.NS", "Adani Total Gas": "ATGL.NS",
+    "Adani Energy": "ADANIENSOL.NS", "Ambuja Cements": "AMBUJACEM.NS", "ACC": "ACC.NS",
+    
+    # --- CONSUMER & PHARMA ---
+    "Nestle India": "NESTLEIND.NS", "Britannia": "BRITANNIA.NS", "Varun Beverages": "VARUN.NS",
+    "Dr Reddys Labs": "DRREDDY.NS", "Cipla": "CIPLA.NS", "Apollo Hospitals": "APOLLOHOSP.NS",
+    "Divis Labs": "DIVISLAB.NS", "Lupin": "LUPIN.NS", "Trent": "TRENT.NS", "DMart": "DMART.NS",
+    
+    # --- PSU & DEFENCE ---
+    "HAL": "HAL.NS", "Bharat Electronics": "BEL.NS", "Mazagon Dock": "MAZDOCK.NS",
+    "Cochin Shipyard": "COCHINSHIP.NS", "BHEL": "BHEL.NS", "IRFC": "IRFC.NS", "RVNL": "RVNL.NS"
 }
 
-# B. DYNAMIC FETCHER
-@st.cache_data(ttl=24*3600) # Cache this big list for 24 hours
+# B. DYNAMIC FETCHER (Tries to get 1900+ stocks, falls back to list above)
+@st.cache_data(ttl=24*3600)
 def load_nse_master_list():
-    master_dict = {}
+    # Start with the robust default list
+    master_dict = DEFAULT_COMPANIES.copy()
+    
     try:
-        # 1. Try fetching the official full list (EQUITY_L.csv)
-        # We use a reliable GitHub mirror because NSE website blocks cloud servers
+        # Try fetching full list
         url = "https://raw.githubusercontent.com/sfini/NSE-Data/master/EQUITY_L.csv"
         df = pd.read_csv(url)
         
-        # 2. Process the CSV
         if 'SYMBOL' in df.columns and 'NAME OF COMPANY' in df.columns:
             for index, row in df.iterrows():
                 symbol = row['SYMBOL']
                 name = row['NAME OF COMPANY']
-                
-                # Format: "Zomato Ltd (ZOMATO)"
                 label = f"{name} ({symbol})"
                 ticker = f"{symbol}.NS"
-                
-                master_dict[label] = ticker
-        
+                master_dict[label] = ticker # Overwrite/Append to master dict
         return master_dict
     
-    except Exception as e:
-        # If fetch fails, return the default list so app doesn't break
-        print(f"Error fetching Master List: {e}")
+    except Exception:
+        # If fetch fails, we just return the expanded DEFAULT_COMPANIES
         return DEFAULT_COMPANIES
 
 # C. INITIALIZE DATABASE
-# This line replaces your old hardcoded dictionary
 NSE_COMPANIES = load_nse_master_list()
 
 # D. SECTOR LISTS (Kept for Market Scanner Mode)
