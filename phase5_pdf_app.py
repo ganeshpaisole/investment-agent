@@ -51,20 +51,15 @@ def analyze_stock(ticker):
         info = stock.info
         
         # === A. TECHNICAL ANALYSIS (TIMING) ===
-        # 1. Trend & Momentum
         ema_200 = EMAIndicator(close=df["Close"], window=200).ema_indicator().iloc[-1]
         rsi = RSIIndicator(close=df["Close"], window=14).rsi().iloc[-1]
         stoch = StochasticOscillator(high=df["High"], low=df["Low"], close=df["Close"]).stoch().iloc[-1]
-        
-        # 2. Volatility (ATR)
         atr = AverageTrueRange(high=df["High"], low=df["Low"], close=df["Close"]).average_true_range().iloc[-1]
         
-        # 3. MACD
         macd = MACD(close=df["Close"])
         df['MACD'] = macd.macd()
         df['MACD_Signal'] = macd.macd_signal()
         
-        # 4. Bollinger Bands (For Charting)
         bb = BollingerBands(close=df["Close"], window=20)
         df['BB_High'] = bb.bollinger_hband()
         df['BB_Low'] = bb.bollinger_lband()
@@ -72,32 +67,26 @@ def analyze_stock(ticker):
         current_price = df["Close"].iloc[-1]
 
         # === B. FUNDAMENTAL ANALYSIS (QUALITY) ===
-        # Safe extraction of data (handles missing values)
         pe_ratio = info.get('trailingPE', 0) or 0
-        forward_pe = info.get('forwardPE', 0) or 0
         peg_ratio = info.get('pegRatio', 0) or 0
-        price_to_book = info.get('priceToBook', 0) or 0
         profit_margins = info.get('profitMargins', 0) or 0
         debt_to_equity = info.get('debtToEquity', 0) or 0
         roe = info.get('returnOnEquity', 0) or 0
         
-        # === C. SCORING SYSTEM (The "Hybrid" Logic) ===
-        
-        # Technical Score (Max 5)
+        # === C. SCORING SYSTEM ===
         tech_score = 0
-        if current_price > ema_200: tech_score += 1     # Long term Uptrend
-        if 40 < rsi < 70: tech_score += 1               # Healthy Momentum
-        if stoch < 80: tech_score += 1                  # Not Overbought
-        if df['MACD'].iloc[-1] > df['MACD_Signal'].iloc[-1]: tech_score += 1 # Bullish Cross
-        if current_price > df['Close'].iloc[-50]: tech_score += 1 # Short term Uptrend
+        if current_price > ema_200: tech_score += 1     
+        if 40 < rsi < 70: tech_score += 1               
+        if stoch < 80: tech_score += 1                  
+        if df['MACD'].iloc[-1] > df['MACD_Signal'].iloc[-1]: tech_score += 1 
+        if current_price > df['Close'].iloc[-50]: tech_score += 1 
         
-        # Fundamental Score (Max 5)
         fund_score = 0
-        if 0 < pe_ratio < 40: fund_score += 1           # Reasonable Valuation
-        if peg_ratio < 2: fund_score += 1               # Growth at reasonable price
-        if profit_margins > 0.10: fund_score += 1       # Healthy Margins (>10%)
-        if debt_to_equity < 100: fund_score += 1        # Low Debt
-        if roe > 0.15: fund_score += 1                  # Strong Return on Equity (>15%)
+        if 0 < pe_ratio < 40: fund_score += 1           
+        if peg_ratio < 2: fund_score += 1               
+        if profit_margins > 0.10: fund_score += 1       
+        if debt_to_equity < 100: fund_score += 1        
+        if roe > 0.15: fund_score += 1                  
 
         metrics = {
             "price": round(current_price, 2),
@@ -128,7 +117,6 @@ def plot_advanced_chart(df, ticker):
 
 # --- 6. PDF GENERATOR ---
 def create_pdf(ticker, data, text):
-    # Sanitize inputs
     clean_trend = data['trend'].replace("🟢", "").replace("🔴", "").strip()
     clean_price = str(data['price']).replace("₹", "Rs. ")
     clean_text = text.encode('latin-1', 'replace').decode('latin-1')
@@ -179,13 +167,11 @@ if mode == "Hybrid Deep Dive":
             metrics, history, info = analyze_stock(ticker)
             
             if metrics:
-                # --- EXECUTIVE SUMMARY ---
                 c1, c2, c3 = st.columns(3)
                 c1.metric("Overall Score", f"{metrics['total_score']}/10")
                 c2.metric("Technical Strength", f"{metrics['tech_score']}/5", delta="Timing")
                 c3.metric("Fundamental Health", f"{metrics['fund_score']}/5", delta="Quality")
                 
-                # --- TABS FOR DETAIL ---
                 tab1, tab2 = st.tabs(["📈 Technical Chart", "🏢 Fundamental Health"])
                 
                 with tab1:
@@ -194,32 +180,29 @@ if mode == "Hybrid Deep Dive":
                 
                 with tab2:
                     f1, f2, f3 = st.columns(3)
-                    f1.metric("Profit Margins", f"{metrics['margins']}%", help="Higher is better")
-                    f2.metric("Return on Equity (ROE)", f"{metrics['roe']}%", help="Efficiency of using capital")
-                    f3.metric("Debt-to-Equity", metrics['debt'], help="Risk level (Lower is usually better)")
-                    
+                    f1.metric("Profit Margins", f"{metrics['margins']}%")
+                    f2.metric("Return on Equity", f"{metrics['roe']}%")
+                    f3.metric("Debt-to-Equity", metrics['debt'])
                     st.write("### Business Description")
                     st.caption(info.get('longBusinessSummary', 'No description available.'))
                 
-                # --- VERDICT ---
                 st.divider()
                 st.subheader("🤖 The AI Verdict")
                 
                 verdict = ""
                 if metrics['total_score'] >= 8:
-                    verdict = f"STRONG BUY: {ticker} is a high-quality company (Score {metrics['fund_score']}/5) currently showing strong technical momentum (Score {metrics['tech_score']}/5)."
+                    verdict = f"STRONG BUY: {ticker} is a high-quality company ({metrics['fund_score']}/5) with strong momentum ({metrics['tech_score']}/5)."
                     st.success(verdict)
                 elif metrics['fund_score'] >= 4 and metrics['tech_score'] <= 2:
-                    verdict = f"WATCHLIST: {ticker} is a great company (Fundamentals {metrics['fund_score']}/5) but the trend is currently weak. Wait for a reversal."
+                    verdict = f"WATCHLIST: Great company ({metrics['fund_score']}/5) but bad timing. Wait for price to settle."
                     st.warning(verdict)
                 elif metrics['fund_score'] <= 2 and metrics['tech_score'] >= 4:
-                    verdict = f"SPECULATIVE TRADING BUY: {ticker} has strong momentum, but weak fundamentals ({metrics['fund_score']}/5). Use strict stop-losses."
+                    verdict = f"TRADING PLAY: Strong trend ({metrics['tech_score']}/5) but weak fundamentals. High Risk."
                     st.warning(verdict)
                 else:
-                    verdict = f"NEUTRAL / AVOID: {ticker} shows average performance in both quality and trend."
+                    verdict = f"AVOID: Weak fundamentals and weak trend."
                     st.error(verdict)
 
-                # PDF Download
                 pdf = create_pdf(ticker, metrics, verdict)
                 st.download_button("📄 Download Hybrid Memo", data=pdf, file_name=f"{ticker}_HybridReport.pdf", mime="application/pdf")
 
@@ -233,4 +216,12 @@ elif mode == "Competitor Comparison":
     if st.button("Compare"):
         m1, h1, f1 = analyze_stock(s1)
         m2, h2, f2 = analyze_stock(s2)
+        
+        # --- FIXED INDENTATION HERE ---
         if m1 and m2:
+            col1, col2 = st.columns(2)
+            col1.metric(s1, m1['total_score'], delta=f"Tech: {m1['tech_score']} | Fund: {m1['fund_score']}")
+            col2.metric(s2, m2['total_score'], delta=f"Tech: {m2['tech_score']} | Fund: {m2['fund_score']}")
+            
+            winner = s1 if m1['total_score'] > m2['total_score'] else s2
+            st.success(f"🏆 Overall Winner: {winner}")
