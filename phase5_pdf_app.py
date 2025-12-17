@@ -1,19 +1,3 @@
-This is **Phase 39: The "Universal Search" Patch.**
-
-You are right. In the previous version, the hardcoded "Safe List" only had names like *"State Bank of India"*. If you typed the ticker **"SBIN"**, it wouldn't find it.
-
-I have renamed every entry in the database to follow the format: **"Company Name (TICKER)"**.
-
-* **Type "State":** Finds "State Bank of India (SBIN)"
-* **Type "SBIN":** Finds "State Bank of India (SBIN)"
-
-### **The Code Upgrade**
-
-Replace your `phase5_pdf_app.py` with this version.
-
-* **Change:** Look at **Section 3**. I reformatted the entire `FAILSAFE_COMPANIES` list. Now, regardless of whether you know the name or the ticker, the search bar will find it.
-
-```python
 import streamlit as st
 import yfinance as yf
 import pandas as pd
@@ -45,82 +29,38 @@ USER_ROLES = {
 }
 
 # --- 3. DATABASE ENGINE (UNIVERSAL SEARCH FORMAT) ---
-# Format: "Name (TICKER)" -> "TICKER.NS"
 FAILSAFE_COMPANIES = {
-    # --- NIFTY 50 HEAVYWEIGHTS ---
-    "Reliance Industries (RELIANCE)": "RELIANCE.NS", 
-    "TCS (TCS)": "TCS.NS", 
-    "HDFC Bank (HDFCBANK)": "HDFCBANK.NS",
-    "ICICI Bank (ICICIBANK)": "ICICIBANK.NS", 
-    "Infosys (INFY)": "INFY.NS", 
-    "State Bank of India (SBIN)": "SBIN.NS",
-    "Bharti Airtel (BHARTIARTL)": "BHARTIARTL.NS", 
-    "ITC Ltd (ITC)": "ITC.NS", 
-    "Larsen & Toubro (LT)": "LT.NS",
-    "Hindustan Unilever (HINDUNILVR)": "HINDUNILVR.NS",
-    
-    # --- AUTO & CONSUMER ---
-    "Maruti Suzuki (MARUTI)": "MARUTI.NS", 
-    "Mahindra & Mahindra (M&M)": "M&M.NS", 
-    "Tata Motors (TATAMOTORS)": "TATAMOTORS.NS",
-    "Bajaj Auto (BAJAJ-AUTO)": "BAJAJ-AUTO.NS", 
-    "Eicher Motors (EICHERMOT)": "EICHERMOT.NS", 
-    "Hero MotoCorp (HEROMOTOCO)": "HEROMOTOCO.NS",
-    "Asian Paints (ASIANPAINT)": "ASIANPAINT.NS", 
-    "Titan Company (TITAN)": "TITAN.NS", 
-    "Nestle India (NESTLEIND)": "NESTLEIND.NS",
-    "Britannia (BRITANNIA)": "BRITANNIA.NS", 
-    "Tata Consumer (TATACONSUM)": "TATACONSUM.NS", 
-    "Trent (TRENT)": "TRENT.NS",
-    
-    # --- FINANCE & INSURANCE ---
-    "Bajaj Finance (BAJFINANCE)": "BAJFINANCE.NS", 
-    "Bajaj Finserv (BAJAJFINSV)": "BAJAJFINSV.NS", 
-    "Kotak Bank (KOTAKBANK)": "KOTAKBANK.NS",
-    "Axis Bank (AXISBANK)": "AXISBANK.NS", 
-    "IndusInd Bank (INDUSINDBK)": "INDUSINDBK.NS", 
-    "HDFC Life (HDFCLIFE)": "HDFCLIFE.NS",
-    "SBI Life (SBILIFE)": "SBILIFE.NS", 
-    "Shriram Finance (SHRIRAMFIN)": "SHRIRAMFIN.NS",
-    "Jio Financial (JIOFIN)": "JIOFIN.NS",
-    "REC Ltd (REC)": "RECLTD.NS",
-    "Power Finance Corp (PFC)": "PFC.NS",
-    "IREDA (IREDA)": "IREDA.NS",
-
-    # --- IT & TECH ---
-    "HCL Tech (HCLTECH)": "HCLTECH.NS", 
-    "Wipro (WIPRO)": "WIPRO.NS", 
-    "Tech Mahindra (TECHM)": "TECHM.NS",
-    "LTIMindtree (LTIM)": "LTIM.NS",
-    
-    # --- PHARMA & HEALTH ---
-    "Sun Pharma (SUNPHARMA)": "SUNPHARMA.NS", 
-    "Dr Reddys Labs (DRREDDY)": "DRREDDY.NS", 
-    "Cipla (CIPLA)": "CIPLA.NS",
-    "Divis Labs (DIVISLAB)": "DIVISLAB.NS", 
+    "Reliance Industries (RELIANCE)": "RELIANCE.NS", "TCS (TCS)": "TCS.NS", 
+    "HDFC Bank (HDFCBANK)": "HDFCBANK.NS", "ICICI Bank (ICICIBANK)": "ICICIBANK.NS", 
+    "Infosys (INFY)": "INFY.NS", "State Bank of India (SBIN)": "SBIN.NS",
+    "Bharti Airtel (BHARTIARTL)": "BHARTIARTL.NS", "ITC Ltd (ITC)": "ITC.NS", 
+    "Larsen & Toubro (LT)": "LT.NS", "Hindustan Unilever (HINDUNILVR)": "HINDUNILVR.NS",
+    "Maruti Suzuki (MARUTI)": "MARUTI.NS", "Mahindra & Mahindra (M&M)": "M&M.NS", 
+    "Tata Motors (TATAMOTORS)": "TATAMOTORS.NS", "Bajaj Auto (BAJAJ-AUTO)": "BAJAJ-AUTO.NS", 
+    "Eicher Motors (EICHERMOT)": "EICHERMOT.NS", "Hero MotoCorp (HEROMOTOCO)": "HEROMOTOCO.NS",
+    "Asian Paints (ASIANPAINT)": "ASIANPAINT.NS", "Titan Company (TITAN)": "TITAN.NS", 
+    "Nestle India (NESTLEIND)": "NESTLEIND.NS", "Britannia (BRITANNIA)": "BRITANNIA.NS", 
+    "Tata Consumer (TATACONSUM)": "TATACONSUM.NS", "Trent (TRENT)": "TRENT.NS",
+    "Bajaj Finance (BAJFINANCE)": "BAJFINANCE.NS", "Bajaj Finserv (BAJAJFINSV)": "BAJAJFINSV.NS", 
+    "Kotak Bank (KOTAKBANK)": "KOTAKBANK.NS", "Axis Bank (AXISBANK)": "AXISBANK.NS", 
+    "IndusInd Bank (INDUSINDBK)": "INDUSINDBK.NS", "HDFC Life (HDFCLIFE)": "HDFCLIFE.NS",
+    "SBI Life (SBILIFE)": "SBILIFE.NS", "Shriram Finance (SHRIRAMFIN)": "SHRIRAMFIN.NS",
+    "Jio Financial (JIOFIN)": "JIOFIN.NS", "REC Ltd (REC)": "RECLTD.NS",
+    "Power Finance Corp (PFC)": "PFC.NS", "IREDA (IREDA)": "IREDA.NS",
+    "HCL Tech (HCLTECH)": "HCLTECH.NS", "Wipro (WIPRO)": "WIPRO.NS", 
+    "Tech Mahindra (TECHM)": "TECHM.NS", "LTIMindtree (LTIM)": "LTIM.NS",
+    "Sun Pharma (SUNPHARMA)": "SUNPHARMA.NS", "Dr Reddys Labs (DRREDDY)": "DRREDDY.NS", 
+    "Cipla (CIPLA)": "CIPLA.NS", "Divis Labs (DIVISLAB)": "DIVISLAB.NS", 
     "Apollo Hospitals (APOLLOHOSP)": "APOLLOHOSP.NS",
-    
-    # --- METALS, POWER, OIL ---
-    "Tata Steel (TATASTEEL)": "TATASTEEL.NS", 
-    "JSW Steel (JSWSTEEL)": "JSWSTEEL.NS", 
-    "Hindalco (HINDALCO)": "HINDALCO.NS",
-    "NTPC (NTPC)": "NTPC.NS", 
-    "Power Grid (POWERGRID)": "POWERGRID.NS", 
-    "ONGC (ONGC)": "ONGC.NS",
-    "Coal India (COALINDIA)": "COALINDIA.NS", 
-    "BPCL (BPCL)": "BPCL.NS", 
-    "Adani Enterprises (ADANIENT)": "ADANIENT.NS",
-    "Adani Ports (ADANIPORTS)": "ADANIPORTS.NS", 
-    "Grasim Industries (GRASIM)": "GRASIM.NS", 
-    "UltraTech Cement (ULTRACEMCO)": "ULTRACEMCO.NS",
-    
-    # --- NEW AGE & OTHERS ---
-    "Bharat Electronics (BEL)": "BEL.NS", 
-    "HAL (HAL)": "HAL.NS", 
-    "Zomato (ZOMATO)": "ZOMATO.NS", 
-    "Paytm (PAYTM)": "PAYTM.NS", 
-    "Varun Beverages (VBL)": "VBL.NS",
-    "PB Fintech (POLICYBZR)": "POLICYBZR.NS"
+    "Tata Steel (TATASTEEL)": "TATASTEEL.NS", "JSW Steel (JSWSTEEL)": "JSWSTEEL.NS", 
+    "Hindalco (HINDALCO)": "HINDALCO.NS", "NTPC (NTPC)": "NTPC.NS", 
+    "Power Grid (POWERGRID)": "POWERGRID.NS", "ONGC (ONGC)": "ONGC.NS",
+    "Coal India (COALINDIA)": "COALINDIA.NS", "BPCL (BPCL)": "BPCL.NS", 
+    "Adani Enterprises (ADANIENT)": "ADANIENT.NS", "Adani Ports (ADANIPORTS)": "ADANIPORTS.NS", 
+    "Grasim Industries (GRASIM)": "GRASIM.NS", "UltraTech Cement (ULTRACEMCO)": "ULTRACEMCO.NS",
+    "Bharat Electronics (BEL)": "BEL.NS", "HAL (HAL)": "HAL.NS", 
+    "Zomato (ZOMATO)": "ZOMATO.NS", "Paytm (PAYTM)": "PAYTM.NS", 
+    "Varun Beverages (VBL)": "VBL.NS", "PB Fintech (POLICYBZR)": "POLICYBZR.NS"
 }
 
 @st.cache_data(ttl=24*3600)
@@ -174,10 +114,22 @@ def check_login():
         st.stop()
 check_login()
 
-# --- 5. MARKET PULSE ---
+# --- 5. SESSION FACTORY (THE FIX) ---
+def get_yahoo_session():
+    """Creates a custom browser session to bypass Yahoo blocks."""
+    session = requests.Session()
+    session.headers.update({
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate, br"
+    })
+    return session
+
+# --- 6. MARKET PULSE ---
 def get_market_pulse():
     try:
-        df = yf.Ticker("^NSEI").history(period="5d")
+        session = get_yahoo_session()
+        df = yf.Ticker("^NSEI", session=session).history(period="5d")
         if df.empty: return None
         price = df["Close"].iloc[-1]
         prev_close = df["Close"].iloc[-2] if len(df) > 1 else df["Open"].iloc[-1]
@@ -186,12 +138,11 @@ def get_market_pulse():
         return {"price": round(price, 2), "change": round(change_val, 2), "pct": round(pct_val, 2), "trend": "BULLISH 🐂" if change_val > 0 else "BEARISH 🐻", "data": df}
     except: return None
 
-# --- 6. CORE ANALYTICS (DIAGNOSTIC MODE) ---
+# --- 7. CORE ANALYTICS ---
 @st.cache_data(ttl=3600)
 def analyze_stock(ticker):
     ticker = str(ticker).strip().upper()
-    session = requests.Session()
-    session.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36"})
+    session = get_yahoo_session() # <--- Using Shared Session
 
     try:
         stock = yf.Ticker(ticker, session=session)
@@ -244,20 +195,23 @@ def analyze_stock(ticker):
     except Exception as e: 
         return None, None, f"⚠️ CRITICAL ERROR: {str(e)}"
 
-# --- 7. FAST SCANNER ---
+# --- 8. FAST SCANNER (WITH SESSION FIX) ---
 @st.cache_data(ttl=600)
 def get_nse_data(tickers):
     results = []
+    session = get_yahoo_session() # <--- FIXED: Now using session here too
+    
     for t in tickers:
         try:
-            h = yf.Ticker(t).history(period="1d")
+            # We use the session here to prevent 404/Delisted errors
+            h = yf.Ticker(t, session=session).history(period="1d")
             if not h.empty:
                 p = h["Close"].iloc[-1]
                 results.append({"Ticker": t, "Price": round(p, 2), "Change %": 0})
         except: continue
     return pd.DataFrame(results)
 
-# --- 8. AIMAGICA ---
+# --- 9. AIMAGICA ---
 def run_aimagica_scan(stock_list):
     results = []
     for ticker in stock_list:
@@ -285,7 +239,7 @@ def run_aimagica_scan(stock_list):
     if not df_res.empty: df_res = df_res.sort_values("Aimagica Score", ascending=False).head(5)
     return df_res
 
-# --- 9. HELPER FUNCTIONS ---
+# --- 10. HELPER FUNCTIONS ---
 def generate_swot(m):
     pros, cons = [], []
     if m['pe'] > 0 and m['pe'] < 25: pros.append(f"Valuation is attractive (P/E {m['pe']}).")
@@ -337,10 +291,11 @@ def get_google_news(query):
 @st.cache_data(ttl=3600)
 def get_company_news(ticker):
     try:
-        return [{"title": n['title'], "link": n['link'], "publisher": n.get('publisher', 'Yahoo')} for n in yf.Ticker(ticker).news[:5]]
+        session = get_yahoo_session()
+        return [{"title": n['title'], "link": n['link'], "publisher": n.get('publisher', 'Yahoo')} for n in yf.Ticker(ticker, session=session).news[:5]]
     except: return []
 
-# --- 10. NOTIFICATION ENGINE ---
+# --- 11. NOTIFICATION ENGINE ---
 def send_email_alert(subject, body):
     try:
         sender = st.secrets["notifications"]["email_sender"]
@@ -383,7 +338,7 @@ if 'scheduler' not in st.session_state:
     scheduler.start()
     st.session_state['scheduler'] = scheduler
 
-# --- 11. DASHBOARD UI ---
+# --- 12. DASHBOARD UI ---
 with st.sidebar:
     st.title(f"👤 {st.session_state['user_name']}")
     st.markdown("---")
@@ -449,7 +404,6 @@ elif mode == "Market Scanner":
 elif mode == "Deep Dive Valuation":
     st.subheader("🔍 Valuation & Analysis")
     with st.form("analysis_form"):
-        # This dropdown uses the MERGED list (Failsafe + Downloaded)
         selected_company = st.selectbox("Search Company:", options=list(NSE_COMPANIES.keys()))
         submitted = st.form_submit_button("Run Analysis")
     if submitted:
@@ -478,7 +432,6 @@ elif mode == "Deep Dive Valuation":
                 pdf = create_pdf(ticker, metrics, pros_list, cons_list, verdict)
                 st.download_button("Download Report", data=pdf, file_name=f"{ticker}_Report.pdf", mime="application/pdf")
             else: 
-                # Display the SPECIFIC error message returned by the function
                 st.error(info_msg)
 
 elif mode == "Compare":
@@ -496,5 +449,3 @@ elif mode == "Compare":
             with col1: st.metric(s1, f"{m1['total_score']}/10")
             with col2: st.metric(s2, f"{m2['total_score']}/10")
             st.success(f"🏆 Winner: {s1 if m1['total_score'] > m2['total_score'] else s2}")
-
-```
