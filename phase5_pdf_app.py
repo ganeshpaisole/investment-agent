@@ -177,7 +177,6 @@ def analyze_stock(ticker):
         pe = get_val(['trailingPE', 'forwardPE'])
         pb = get_val(['priceToBook'])
         
-        # Data Recovery
         eps = get_val(['trailingEps', 'forwardEps'])
         if eps == 0 and pe > 0: eps = current_price / pe
             
@@ -189,14 +188,23 @@ def analyze_stock(ticker):
         roe = get_val(['returnOnEquity'])
         peg = get_val(['pegRatio'])
         
-        # Extended Financials for Tab 4
+        # Extended Financials with Fallback
         revenue = get_val(['totalRevenue'])
         net_income = get_val(['netIncomeToCommon'])
+        
+        # FALLBACK: If Info dict fails, check the Raw Financials DataFrame
+        if revenue == 0 or net_income == 0:
+            try:
+                fins = stock.financials
+                if not fins.empty:
+                    if revenue == 0: revenue = fins.loc['Total Revenue'].iloc[0]
+                    if net_income == 0: net_income = fins.loc['Net Income'].iloc[0]
+            except: pass
+
         op_margin = get_val(['operatingMargins'])
         roa = get_val(['returnOnAssets'])
 
         # --- VALUATION WATERFALL ---
-        # 1. Try Graham Number (Strict)
         intrinsic_value = 0
         valuation_note = ""
         
@@ -204,7 +212,6 @@ def analyze_stock(ticker):
             intrinsic_value = math.sqrt(22.5 * eps * book_value)
             valuation_note = "Graham Number"
             
-        # 2. Fallback: Analyst Target
         if intrinsic_value == 0:
             target = get_val(['targetMeanPrice', 'targetMedianPrice'])
             if target > 0:
@@ -236,26 +243,13 @@ def analyze_stock(ticker):
 # --- 7. HELPER FUNCTIONS ---
 def generate_key_factors(m):
     factors = []
-    # 1. Valuation Factor
-    if m['pe'] < 20 and m['pe'] > 0: 
-        factors.append("🟢 **Attractive Valuation:** P/E Ratio is low, suggesting the stock might be undervalued.")
-    elif m['pe'] > 50:
-        factors.append("🔴 **Expensive Valuation:** P/E Ratio is high. Markets expect high future growth.")
-    
-    # 2. Efficiency Factor
-    if m['roe'] > 15:
-        factors.append(f"🟢 **High Efficiency:** Return on Equity (ROE) is {m['roe']}%, indicating efficient management.")
-    else:
-        factors.append(f"🟠 **Low Efficiency:** ROE is {m['roe']}%, suggesting potential inefficiency in capital use.")
-        
-    # 3. Momentum Factor
-    if m['rsi'] > 70:
-        factors.append("🔴 **Overbought:** RSI is high (>70). A short-term correction might occur.")
-    elif m['rsi'] < 30:
-        factors.append("🟢 **Oversold:** RSI is low (<30). A technical bounce might be due.")
-    else:
-        factors.append("⚪ **Neutral Momentum:** RSI is in a healthy range (30-70).")
-        
+    if m['pe'] < 20 and m['pe'] > 0: factors.append("🟢 **Attractive Valuation:** P/E Ratio is low.")
+    elif m['pe'] > 50: factors.append("🔴 **Expensive Valuation:** P/E Ratio is high.")
+    if m['roe'] > 15: factors.append(f"🟢 **High Efficiency:** ROE is {m['roe']}%.")
+    else: factors.append(f"🟠 **Low Efficiency:** ROE is {m['roe']}%.")
+    if m['rsi'] > 70: factors.append("🔴 **Overbought:** RSI > 70.")
+    elif m['rsi'] < 30: factors.append("🟢 **Oversold:** RSI < 30.")
+    else: factors.append("⚪ **Neutral Momentum:** RSI is healthy.")
     return factors
 
 def generate_swot(m):
@@ -307,14 +301,11 @@ def get_google_news(query):
     except: return []
 
 @st.cache_data(ttl=3600)
-def get_company_news(ticker, name="Stock"):
-    # 1. Try Yahoo First
+def get_company_news(ticker):
     try:
         news = [{"title": n['title'], "link": n['link'], "publisher": n.get('publisher', 'Yahoo')} for n in yf.Ticker(ticker).news[:5]]
         if len(news) > 0: return news
     except: pass
-    
-    # 2. Fallback to Google News
     return get_google_news(f"{ticker} stock news")
 
 # --- 8. SCANNER ENGINE ---
@@ -479,7 +470,7 @@ elif mode == "Deep Dive Valuation":
             metrics, history, info_msg = analyze_stock(ticker)
             if metrics:
                 pros_list, cons_list = generate_swot(metrics)
-                key_factors = generate_key_factors(metrics) # Generate Key Factors
+                key_factors = generate_key_factors(metrics)
 
                 c1, c2, c3, c4 = st.columns(4)
                 c1.metric("Overall Score", f"{metrics['total_score']}/10")
@@ -487,15 +478,13 @@ elif mode == "Deep Dive Valuation":
                 c3.metric("Tech Strength", f"{metrics['tech_score']}/5")
                 c4.metric("Fund Health", f"{metrics['fund_score']}/5")
                 
-                # --- NEW TABS: Key Factors, Financials, News ---
                 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📈 Forecast", "🔑 Key Factors", "✅ SWOC", "🎩 Valuation", "🏢 Financials", "📰 News & Events"])
                 
                 with tab1: st.plotly_chart(plot_chart(history, ticker), use_container_width=True)
                 
-                with tab2: # Key Factors Logic
+                with tab2:
                     st.subheader("Drivers of Stock Value")
-                    for factor in key_factors:
-                        st.markdown(factor)
+                    for factor in key_factors: st.markdown(factor)
                 
                 with tab3:
                     st.success("✅ STRENGTHS"); [st.write(p) for p in pros_list]
@@ -507,7 +496,7 @@ elif mode == "Deep Dive Valuation":
                         st.metric(label=f"Fair Value ({metrics['val_note']})", value=f"₹{metrics['intrinsic']}", delta=f"{delta_val}% {'Upside' if delta_val > 0 else 'Downside'}")
                     else: st.error(f"Cannot calculate Fair Value. Reason: {metrics.get('val_note', 'Data Missing')}")
                 
-                with tab5: # Financials Table
+                with tab5: 
                     col_a, col_b = st.columns(2)
                     with col_a:
                         st.metric("Total Revenue", f"₹{round(metrics['revenue']/10000000, 2)} Cr" if metrics['revenue'] else "N/A")
@@ -516,9 +505,10 @@ elif mode == "Deep Dive Valuation":
                         st.metric("Operating Margin", f"{round(metrics['op_margin']*100, 2)}%" if metrics['op_margin'] else "N/A")
                         st.metric("Return on Assets", f"{round(metrics['roa']*100, 2)}%" if metrics['roa'] else "N/A")
 
-                with tab6: # News with Fallback
+                with tab6:
                     company_news = get_company_news(ticker)
-                    if company_news: [st.markdown(f"**[{n['title']}]({n['link']})**") for n in company_news]
+                    if company_news:
+                        for n in company_news: st.markdown(f"**[{n['title']}]({n['link']})**")
                     else: st.write("No recent news found.")
 
                 verdict = f"Fair Value: {metrics['intrinsic']}. Score: {metrics['total_score']}/10."
