@@ -128,7 +128,7 @@ def get_market_pulse():
         return {"price": round(price, 2), "change": round(change_val, 2), "pct": round(pct_val, 2), "trend": "BULLISH 🐂" if change_val > 0 else "BEARISH 🐻", "data": df}
     except: return None
 
-# --- 6. CORE ANALYTICS (VALUATION WATERFALL) ---
+# --- 6. CORE ANALYTICS ---
 @st.cache_data(ttl=3600)
 def analyze_stock(ticker):
     ticker = str(ticker).strip().upper()
@@ -189,6 +189,12 @@ def analyze_stock(ticker):
         roe = get_val(['returnOnEquity'])
         peg = get_val(['pegRatio'])
         
+        # Extended Financials for Tab 4
+        revenue = get_val(['totalRevenue'])
+        net_income = get_val(['netIncomeToCommon'])
+        op_margin = get_val(['operatingMargins'])
+        roa = get_val(['returnOnAssets'])
+
         # --- VALUATION WATERFALL ---
         # 1. Try Graham Number (Strict)
         intrinsic_value = 0
@@ -198,14 +204,14 @@ def analyze_stock(ticker):
             intrinsic_value = math.sqrt(22.5 * eps * book_value)
             valuation_note = "Graham Number"
             
-        # 2. Fallback: Analyst Target (Growth/Loss-Making Stocks)
+        # 2. Fallback: Analyst Target
         if intrinsic_value == 0:
             target = get_val(['targetMeanPrice', 'targetMedianPrice'])
             if target > 0:
                 intrinsic_value = target
                 valuation_note = "Analyst Target"
             else:
-                intrinsic_value = current_price # Neutral fallback
+                intrinsic_value = current_price 
                 valuation_note = "Market Price"
 
         # Scores
@@ -220,60 +226,38 @@ def analyze_stock(ticker):
             "trend": "UP 🟢" if current_price > ema_200 else "DOWN 🔴",
             "intrinsic": round(intrinsic_value, 2),
             "val_note": valuation_note,
-            "eps": eps, "book_value": book_value, "sector": info.get('sector', 'General')
+            "eps": eps, "book_value": book_value, "sector": info.get('sector', 'General'),
+            "revenue": revenue, "net_income": net_income, "op_margin": op_margin, "roa": roa
         }
         return metrics, df, info
     except Exception as e: 
         return None, None, f"⚠️ Analysis Error: {str(e)}"
 
-# --- 7. FAST SCANNER ---
-@st.cache_data(ttl=600)
-def get_nse_data(tickers):
-    results = []
-    for t in tickers:
-        try:
-            h = yf.Ticker(t).history(period="1d")
-            if not h.empty:
-                p = h["Close"].iloc[-1]
-                results.append({"Ticker": t, "Price": round(p, 2), "Change %": 0})
-            time.sleep(0.05)
-        except: continue
-    return pd.DataFrame(results)
+# --- 7. HELPER FUNCTIONS ---
+def generate_key_factors(m):
+    factors = []
+    # 1. Valuation Factor
+    if m['pe'] < 20 and m['pe'] > 0: 
+        factors.append("🟢 **Attractive Valuation:** P/E Ratio is low, suggesting the stock might be undervalued.")
+    elif m['pe'] > 50:
+        factors.append("🔴 **Expensive Valuation:** P/E Ratio is high. Markets expect high future growth.")
+    
+    # 2. Efficiency Factor
+    if m['roe'] > 15:
+        factors.append(f"🟢 **High Efficiency:** Return on Equity (ROE) is {m['roe']}%, indicating efficient management.")
+    else:
+        factors.append(f"🟠 **Low Efficiency:** ROE is {m['roe']}%, suggesting potential inefficiency in capital use.")
+        
+    # 3. Momentum Factor
+    if m['rsi'] > 70:
+        factors.append("🔴 **Overbought:** RSI is high (>70). A short-term correction might occur.")
+    elif m['rsi'] < 30:
+        factors.append("🟢 **Oversold:** RSI is low (<30). A technical bounce might be due.")
+    else:
+        factors.append("⚪ **Neutral Momentum:** RSI is in a healthy range (30-70).")
+        
+    return factors
 
-# --- 8. AIMAGICA ---
-def run_aimagica_scan(stock_list):
-    results = []
-    for ticker in stock_list:
-        try:
-            m, _, _ = analyze_stock(ticker)
-            if not m: continue
-            
-            # Smart Scoring for Growth vs Value
-            val_score = 0
-            if "Graham" in m['val_note']:
-                 if m['price'] < m['intrinsic']: val_score = 25
-            elif "Analyst" in m['val_note']:
-                 if m['price'] < m['intrinsic'] * 0.9: val_score = 20 # Require 10% safety on Analyst Target
-            
-            rev_score = 10 if m['rsi'] < 40 else 0
-            if "UP" in m['trend']: rev_score += 15
-            qual_score = 10 if m['margins'] > 15 else 0
-            grow_score = 15 if (0 < m['peg'] < 1.5) else 0
-            
-            final_score = val_score + rev_score + qual_score + grow_score
-            
-            if final_score > 40:
-                results.append({
-                    "Ticker": ticker, "Price": m['price'], "Aimagica Score": final_score,
-                    "Why": f"Method: {m['val_note']}",
-                    "Upside": round(((m['intrinsic'] - m['price'])/m['price'])*100, 1) if m['intrinsic'] > 0 else 0
-                })
-        except: continue
-    df_res = pd.DataFrame(results)
-    if not df_res.empty: df_res = df_res.sort_values("Aimagica Score", ascending=False).head(5)
-    return df_res
-
-# --- 9. HELPER FUNCTIONS ---
 def generate_swot(m):
     pros, cons = [], []
     if m['pe'] > 0 and m['pe'] < 25: pros.append(f"Valuation is attractive (P/E {m['pe']}).")
@@ -323,12 +307,62 @@ def get_google_news(query):
     except: return []
 
 @st.cache_data(ttl=3600)
-def get_company_news(ticker):
+def get_company_news(ticker, name="Stock"):
+    # 1. Try Yahoo First
     try:
-        return [{"title": n['title'], "link": n['link'], "publisher": n.get('publisher', 'Yahoo')} for n in yf.Ticker(ticker).news[:5]]
-    except: return []
+        news = [{"title": n['title'], "link": n['link'], "publisher": n.get('publisher', 'Yahoo')} for n in yf.Ticker(ticker).news[:5]]
+        if len(news) > 0: return news
+    except: pass
+    
+    # 2. Fallback to Google News
+    return get_google_news(f"{ticker} stock news")
 
-# --- 10. NOTIFICATION ENGINE ---
+# --- 8. SCANNER ENGINE ---
+@st.cache_data(ttl=600)
+def get_nse_data(tickers):
+    results = []
+    for t in tickers:
+        try:
+            h = yf.Ticker(t).history(period="1d")
+            if not h.empty:
+                p = h["Close"].iloc[-1]
+                results.append({"Ticker": t, "Price": round(p, 2), "Change %": 0})
+            time.sleep(0.05)
+        except: continue
+    return pd.DataFrame(results)
+
+def run_aimagica_scan(stock_list):
+    results = []
+    for ticker in stock_list:
+        try:
+            m, _, _ = analyze_stock(ticker)
+            if not m: continue
+            
+            val_score = 0
+            if "Graham" in m['val_note']:
+                 if m['price'] < m['intrinsic']: val_score = 25
+            elif "Analyst" in m['val_note']:
+                 if m['price'] < m['intrinsic'] * 0.9: val_score = 20
+            
+            rev_score = 10 if m['rsi'] < 40 else 0
+            if "UP" in m['trend']: rev_score += 15
+            qual_score = 10 if m['margins'] > 15 else 0
+            grow_score = 15 if (0 < m['peg'] < 1.5) else 0
+            
+            final_score = val_score + rev_score + qual_score + grow_score
+            
+            if final_score > 40:
+                results.append({
+                    "Ticker": ticker, "Price": m['price'], "Aimagica Score": final_score,
+                    "Why": f"Method: {m['val_note']}",
+                    "Upside": round(((m['intrinsic'] - m['price'])/m['price'])*100, 1) if m['intrinsic'] > 0 else 0
+                })
+        except: continue
+    df_res = pd.DataFrame(results)
+    if not df_res.empty: df_res = df_res.sort_values("Aimagica Score", ascending=False).head(5)
+    return df_res
+
+# --- 9. NOTIFICATION ENGINE ---
 def send_email_alert(subject, body):
     try:
         sender = st.secrets["notifications"]["email_sender"]
@@ -371,7 +405,7 @@ if 'scheduler' not in st.session_state:
     scheduler.start()
     st.session_state['scheduler'] = scheduler
 
-# --- 11. DASHBOARD UI ---
+# --- 10. DASHBOARD UI ---
 with st.sidebar:
     st.title(f"👤 {st.session_state['user_name']}")
     st.markdown("---")
@@ -445,34 +479,48 @@ elif mode == "Deep Dive Valuation":
             metrics, history, info_msg = analyze_stock(ticker)
             if metrics:
                 pros_list, cons_list = generate_swot(metrics)
-                
-                # --- NEW TOP ROW: Price is now visible ---
+                key_factors = generate_key_factors(metrics) # Generate Key Factors
+
                 c1, c2, c3, c4 = st.columns(4)
                 c1.metric("Overall Score", f"{metrics['total_score']}/10")
-                c2.metric("Current Price", f"₹{metrics['price']}") # <--- Added Price Here
+                c2.metric("Current Price", f"₹{metrics['price']}")
                 c3.metric("Tech Strength", f"{metrics['tech_score']}/5")
                 c4.metric("Fund Health", f"{metrics['fund_score']}/5")
                 
-                tab1, tab2, tab3, tab4, tab5 = st.tabs(["📈 Forecast", "✅ SWOC", "🎩 Valuation", "🏢 Financials", "📰 News & Events"])
+                # --- NEW TABS: Key Factors, Financials, News ---
+                tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📈 Forecast", "🔑 Key Factors", "✅ SWOC", "🎩 Valuation", "🏢 Financials", "📰 News & Events"])
+                
                 with tab1: st.plotly_chart(plot_chart(history, ticker), use_container_width=True)
-                with tab2: 
+                
+                with tab2: # Key Factors Logic
+                    st.subheader("Drivers of Stock Value")
+                    for factor in key_factors:
+                        st.markdown(factor)
+                
+                with tab3:
                     st.success("✅ STRENGTHS"); [st.write(p) for p in pros_list]
                     st.error("❌ WEAKNESSES"); [st.write(c) for c in cons_list]
-                with tab3:
+                
+                with tab4:
                     if metrics['intrinsic'] > 0: 
-                        # --- NEW VALUATION DISPLAY: Shows Upside/Downside Delta ---
                         delta_val = round(((metrics['intrinsic'] - metrics['price']) / metrics['price']) * 100, 1)
-                        st.metric(
-                            label=f"Fair Value ({metrics['val_note']})", 
-                            value=f"₹{metrics['intrinsic']}", 
-                            delta=f"{delta_val}% {'Upside' if delta_val > 0 else 'Downside'}"
-                        )
-                    else: 
-                        st.error(f"Cannot calculate Fair Value. Reason: {metrics.get('val_note', 'Data Missing')}")
-                with tab4: st.write(metrics.get('sector', 'No summary.'))
-                with tab5:
+                        st.metric(label=f"Fair Value ({metrics['val_note']})", value=f"₹{metrics['intrinsic']}", delta=f"{delta_val}% {'Upside' if delta_val > 0 else 'Downside'}")
+                    else: st.error(f"Cannot calculate Fair Value. Reason: {metrics.get('val_note', 'Data Missing')}")
+                
+                with tab5: # Financials Table
+                    col_a, col_b = st.columns(2)
+                    with col_a:
+                        st.metric("Total Revenue", f"₹{round(metrics['revenue']/10000000, 2)} Cr" if metrics['revenue'] else "N/A")
+                        st.metric("Net Income", f"₹{round(metrics['net_income']/10000000, 2)} Cr" if metrics['net_income'] else "N/A")
+                    with col_b:
+                        st.metric("Operating Margin", f"{round(metrics['op_margin']*100, 2)}%" if metrics['op_margin'] else "N/A")
+                        st.metric("Return on Assets", f"{round(metrics['roa']*100, 2)}%" if metrics['roa'] else "N/A")
+
+                with tab6: # News with Fallback
                     company_news = get_company_news(ticker)
                     if company_news: [st.markdown(f"**[{n['title']}]({n['link']})**") for n in company_news]
+                    else: st.write("No recent news found.")
+
                 verdict = f"Fair Value: {metrics['intrinsic']}. Score: {metrics['total_score']}/10."
                 pdf = create_pdf(ticker, metrics, pros_list, cons_list, verdict)
                 st.download_button("Download Report", data=pdf, file_name=f"{ticker}_Report.pdf", mime="application/pdf")
