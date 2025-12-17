@@ -1,3 +1,19 @@
+This is **Phase 39: The "Universal Search" Patch.**
+
+You are right. In the previous version, the hardcoded "Safe List" only had names like *"State Bank of India"*. If you typed the ticker **"SBIN"**, it wouldn't find it.
+
+I have renamed every entry in the database to follow the format: **"Company Name (TICKER)"**.
+
+* **Type "State":** Finds "State Bank of India (SBIN)"
+* **Type "SBIN":** Finds "State Bank of India (SBIN)"
+
+### **The Code Upgrade**
+
+Replace your `phase5_pdf_app.py` with this version.
+
+* **Change:** Look at **Section 3**. I reformatted the entire `FAILSAFE_COMPANIES` list. Now, regardless of whether you know the name or the ticker, the search bar will find it.
+
+```python
 import streamlit as st
 import yfinance as yf
 import pandas as pd
@@ -28,48 +44,85 @@ USER_ROLES = {
     "client": {"role": "viewer", "name": "Valued Client"}
 }
 
-# --- 3. DATABASE ENGINE (LAYER 1: FULL NIFTY 50) ---
-
-# A. GUARANTEED LIST (NIFTY 50 + POPULAR)
-# This loads INSTANTLY. No download required.
+# --- 3. DATABASE ENGINE (UNIVERSAL SEARCH FORMAT) ---
+# Format: "Name (TICKER)" -> "TICKER.NS"
 FAILSAFE_COMPANIES = {
     # --- NIFTY 50 HEAVYWEIGHTS ---
-    "Reliance Industries": "RELIANCE.NS", "TCS": "TCS.NS", "HDFC Bank": "HDFCBANK.NS",
-    "ICICI Bank": "ICICIBANK.NS", "Infosys": "INFY.NS", "State Bank of India": "SBIN.NS",
-    "Bharti Airtel": "BHARTIARTL.NS", "ITC Ltd": "ITC.NS", "Larsen & Toubro": "LT.NS",
-    "Hindustan Unilever": "HINDUNILVR.NS",
+    "Reliance Industries (RELIANCE)": "RELIANCE.NS", 
+    "TCS (TCS)": "TCS.NS", 
+    "HDFC Bank (HDFCBANK)": "HDFCBANK.NS",
+    "ICICI Bank (ICICIBANK)": "ICICIBANK.NS", 
+    "Infosys (INFY)": "INFY.NS", 
+    "State Bank of India (SBIN)": "SBIN.NS",
+    "Bharti Airtel (BHARTIARTL)": "BHARTIARTL.NS", 
+    "ITC Ltd (ITC)": "ITC.NS", 
+    "Larsen & Toubro (LT)": "LT.NS",
+    "Hindustan Unilever (HINDUNILVR)": "HINDUNILVR.NS",
     
     # --- AUTO & CONSUMER ---
-    "Maruti Suzuki": "MARUTI.NS", "Mahindra & Mahindra": "M&M.NS", "Tata Motors": "TATAMOTORS.NS",
-    "Bajaj Auto": "BAJAJ-AUTO.NS", "Eicher Motors": "EICHERMOT.NS", "Hero MotoCorp": "HEROMOTOCO.NS",
-    "Asian Paints": "ASIANPAINT.NS", "Titan Company": "TITAN.NS", "Nestle India": "NESTLEIND.NS",
-    "Britannia": "BRITANNIA.NS", "Tata Consumer": "TATACONSUM.NS", "Trent": "TRENT.NS",
+    "Maruti Suzuki (MARUTI)": "MARUTI.NS", 
+    "Mahindra & Mahindra (M&M)": "M&M.NS", 
+    "Tata Motors (TATAMOTORS)": "TATAMOTORS.NS",
+    "Bajaj Auto (BAJAJ-AUTO)": "BAJAJ-AUTO.NS", 
+    "Eicher Motors (EICHERMOT)": "EICHERMOT.NS", 
+    "Hero MotoCorp (HEROMOTOCO)": "HEROMOTOCO.NS",
+    "Asian Paints (ASIANPAINT)": "ASIANPAINT.NS", 
+    "Titan Company (TITAN)": "TITAN.NS", 
+    "Nestle India (NESTLEIND)": "NESTLEIND.NS",
+    "Britannia (BRITANNIA)": "BRITANNIA.NS", 
+    "Tata Consumer (TATACONSUM)": "TATACONSUM.NS", 
+    "Trent (TRENT)": "TRENT.NS",
     
     # --- FINANCE & INSURANCE ---
-    "Bajaj Finance": "BAJFINANCE.NS", "Bajaj Finserv": "BAJAJFINSV.NS", "Kotak Bank": "KOTAKBANK.NS",
-    "Axis Bank": "AXISBANK.NS", "IndusInd Bank": "INDUSINDBK.NS", "HDFC Life": "HDFCLIFE.NS",
-    "SBI Life": "SBILIFE.NS", "Shriram Finance": "SHRIRAMFIN.NS",
-    
+    "Bajaj Finance (BAJFINANCE)": "BAJFINANCE.NS", 
+    "Bajaj Finserv (BAJAJFINSV)": "BAJAJFINSV.NS", 
+    "Kotak Bank (KOTAKBANK)": "KOTAKBANK.NS",
+    "Axis Bank (AXISBANK)": "AXISBANK.NS", 
+    "IndusInd Bank (INDUSINDBK)": "INDUSINDBK.NS", 
+    "HDFC Life (HDFCLIFE)": "HDFCLIFE.NS",
+    "SBI Life (SBILIFE)": "SBILIFE.NS", 
+    "Shriram Finance (SHRIRAMFIN)": "SHRIRAMFIN.NS",
+    "Jio Financial (JIOFIN)": "JIOFIN.NS",
+    "REC Ltd (REC)": "RECLTD.NS",
+    "Power Finance Corp (PFC)": "PFC.NS",
+    "IREDA (IREDA)": "IREDA.NS",
+
     # --- IT & TECH ---
-    "HCL Tech": "HCLTECH.NS", "Wipro": "WIPRO.NS", "Tech Mahindra": "TECHM.NS",
-    "LTIMindtree": "LTIM.NS",
+    "HCL Tech (HCLTECH)": "HCLTECH.NS", 
+    "Wipro (WIPRO)": "WIPRO.NS", 
+    "Tech Mahindra (TECHM)": "TECHM.NS",
+    "LTIMindtree (LTIM)": "LTIM.NS",
     
     # --- PHARMA & HEALTH ---
-    "Sun Pharma": "SUNPHARMA.NS", "Dr Reddys Labs": "DRREDDY.NS", "Cipla": "CIPLA.NS",
-    "Divis Labs": "DIVISLAB.NS", "Apollo Hospitals": "APOLLOHOSP.NS",
+    "Sun Pharma (SUNPHARMA)": "SUNPHARMA.NS", 
+    "Dr Reddys Labs (DRREDDY)": "DRREDDY.NS", 
+    "Cipla (CIPLA)": "CIPLA.NS",
+    "Divis Labs (DIVISLAB)": "DIVISLAB.NS", 
+    "Apollo Hospitals (APOLLOHOSP)": "APOLLOHOSP.NS",
     
     # --- METALS, POWER, OIL ---
-    "Tata Steel": "TATASTEEL.NS", "JSW Steel": "JSWSTEEL.NS", "Hindalco": "HINDALCO.NS",
-    "NTPC": "NTPC.NS", "Power Grid": "POWERGRID.NS", "ONGC": "ONGC.NS",
-    "Coal India": "COALINDIA.NS", "BPCL": "BPCL.NS", "Adani Enterprises": "ADANIENT.NS",
-    "Adani Ports": "ADANIPORTS.NS", "Grasim Industries": "GRASIM.NS", "UltraTech Cement": "ULTRACEMCO.NS",
+    "Tata Steel (TATASTEEL)": "TATASTEEL.NS", 
+    "JSW Steel (JSWSTEEL)": "JSWSTEEL.NS", 
+    "Hindalco (HINDALCO)": "HINDALCO.NS",
+    "NTPC (NTPC)": "NTPC.NS", 
+    "Power Grid (POWERGRID)": "POWERGRID.NS", 
+    "ONGC (ONGC)": "ONGC.NS",
+    "Coal India (COALINDIA)": "COALINDIA.NS", 
+    "BPCL (BPCL)": "BPCL.NS", 
+    "Adani Enterprises (ADANIENT)": "ADANIENT.NS",
+    "Adani Ports (ADANIPORTS)": "ADANIPORTS.NS", 
+    "Grasim Industries (GRASIM)": "GRASIM.NS", 
+    "UltraTech Cement (ULTRACEMCO)": "ULTRACEMCO.NS",
     
-    # --- PSU & OTHERS (BONUS ADDITIONS) ---
-    "Bharat Electronics (BEL)": "BEL.NS", "HAL": "HAL.NS", "Jio Financial": "JIOFIN.NS",
-    "Zomato": "ZOMATO.NS", "Paytm": "PAYTM.NS", "Varun Beverages": "VBL.NS", "REC Ltd": "RECLTD.NS"
+    # --- NEW AGE & OTHERS ---
+    "Bharat Electronics (BEL)": "BEL.NS", 
+    "HAL (HAL)": "HAL.NS", 
+    "Zomato (ZOMATO)": "ZOMATO.NS", 
+    "Paytm (PAYTM)": "PAYTM.NS", 
+    "Varun Beverages (VBL)": "VBL.NS",
+    "PB Fintech (POLICYBZR)": "POLICYBZR.NS"
 }
 
-# B. DYNAMIC FETCHER (Layer 2: Attempts 1900+ list)
 @st.cache_data(ttl=24*3600)
 def load_nse_master_list():
     master_dict = FAILSAFE_COMPANIES.copy()
@@ -92,7 +145,6 @@ def load_nse_master_list():
 
 NSE_COMPANIES = load_nse_master_list()
 
-# C. SECTOR LISTS
 SECTORS = {
     "Nifty 50 (All)": list(FAILSAFE_COMPANIES.values()),
     "Banks": ["HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS", "KOTAKBANK.NS", "AXISBANK.NS", "INDUSINDBK.NS"],
@@ -131,45 +183,31 @@ def get_market_pulse():
         prev_close = df["Close"].iloc[-2] if len(df) > 1 else df["Open"].iloc[-1]
         change_val = price - prev_close
         pct_val = (change_val / prev_close) * 100
-        return {
-            "price": round(price, 2), "change": round(change_val, 2), "pct": round(pct_val, 2),
-            "trend": "BULLISH 🐂" if change_val > 0 else "BEARISH 🐻", "data": df
-        }
+        return {"price": round(price, 2), "change": round(change_val, 2), "pct": round(pct_val, 2), "trend": "BULLISH 🐂" if change_val > 0 else "BEARISH 🐻", "data": df}
     except: return None
 
-# --- 6. CORE ANALYTICS (ROBUST STEALTH MODE) ---
+# --- 6. CORE ANALYTICS (DIAGNOSTIC MODE) ---
 @st.cache_data(ttl=3600)
 def analyze_stock(ticker):
-    # 1. Setup a "Fake Browser" Session to bypass Yahoo Blocks
+    ticker = str(ticker).strip().upper()
     session = requests.Session()
-    session.headers.update({
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    })
+    session.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36"})
 
     try:
-        # 2. Fetch History with the Session
         stock = yf.Ticker(ticker, session=session)
         df = stock.history(period="1y")
         
-        # 3. Fallback: If 1y fails, try 1mo (Some stocks are new/glitched)
         if df.empty:
-            df = stock.history(period="1mo")
-        
-        if df.empty: 
-            return None, None, "No data found. Yahoo might be blocking or ticker is wrong."
+            df = stock.history(period="5d")
+            if df.empty:
+                return None, None, f"⚠️ No data found for '{ticker}'. Yahoo might be blocking IP or ticker is invalid."
         
         info = stock.info
+        current_price = df["Close"].iloc[-1]
         
-        # Safe extraction of current price
-        try:
-            current_price = df["Close"].iloc[-1]
-        except:
-            return None, None, "Data Error: Could not read Close price."
-        
-        # Technicals (Safe Calculation)
         try:
             ema_200 = EMAIndicator(close=df["Close"], window=200).ema_indicator().iloc[-1]
-        except: ema_200 = current_price # Fallback for new stocks
+        except: ema_200 = current_price
 
         rsi = RSIIndicator(close=df["Close"], window=14).rsi().iloc[-1]
         stoch = StochasticOscillator(high=df["High"], low=df["Low"], close=df["Close"]).stoch().iloc[-1]
@@ -178,9 +216,7 @@ def analyze_stock(ticker):
         bb = BollingerBands(close=df["Close"], window=20)
         df['BB_High'] = bb.bollinger_hband(); df['BB_Low'] = bb.bollinger_lband()
 
-        # Fundamentals (Safe Get)
-        def get_safe(key): return info.get(key, 0) or 0
-        
+        def get_safe(k): return info.get(k, 0) or 0
         eps = get_safe('trailingEps')
         book_value = get_safe('bookValue')
         pe = get_safe('trailingPE')
@@ -192,7 +228,6 @@ def analyze_stock(ticker):
         intrinsic_value = 0
         if eps > 0 and book_value > 0: intrinsic_value = math.sqrt(22.5 * eps * book_value)
         
-        # Scoring Logic
         t_score = sum([current_price > ema_200, 40 < rsi < 70, stoch < 80, df['MACD'].iloc[-1] > df['MACD_Signal'].iloc[-1]])
         f_score = sum([0 < pe < 40, margins > 0.10, debt < 100, roe > 0.15])
 
@@ -206,7 +241,8 @@ def analyze_stock(ticker):
             "eps": eps, "book_value": book_value, "sector": info.get('sector', 'General')
         }
         return metrics, df, info
-    except Exception as e: return None, None, str(e)
+    except Exception as e: 
+        return None, None, f"⚠️ CRITICAL ERROR: {str(e)}"
 
 # --- 7. FAST SCANNER ---
 @st.cache_data(ttl=600)
@@ -224,7 +260,6 @@ def get_nse_data(tickers):
 # --- 8. AIMAGICA ---
 def run_aimagica_scan(stock_list):
     results = []
-    # Use the FULL FailSafe List (Nifty 50) for scanning
     for ticker in stock_list:
         try:
             m, _, _ = analyze_stock(ticker)
@@ -420,7 +455,7 @@ elif mode == "Deep Dive Valuation":
     if submitted:
         ticker = NSE_COMPANIES[selected_company]
         with st.spinner(f"Analyzing {ticker}..."):
-            metrics, history, info = analyze_stock(ticker)
+            metrics, history, info_msg = analyze_stock(ticker)
             if metrics:
                 pros_list, cons_list = generate_swot(metrics)
                 c1, c2, c3 = st.columns(3)
@@ -435,14 +470,16 @@ elif mode == "Deep Dive Valuation":
                 with tab3:
                     if metrics['intrinsic'] > 0: st.metric("Fair Value", f"₹{metrics['intrinsic']}")
                     else: st.error("Cannot calculate Fair Value.")
-                with tab4: st.write(info.get('longBusinessSummary', 'No summary.'))
+                with tab4: st.write(metrics.get('sector', 'No summary.'))
                 with tab5:
                     company_news = get_company_news(ticker)
                     if company_news: [st.markdown(f"**[{n['title']}]({n['link']})**") for n in company_news]
                 verdict = f"Fair Value: {metrics['intrinsic']}. Score: {metrics['total_score']}/10."
                 pdf = create_pdf(ticker, metrics, pros_list, cons_list, verdict)
                 st.download_button("Download Report", data=pdf, file_name=f"{ticker}_Report.pdf", mime="application/pdf")
-            else: st.error("Could not fetch data. Ticker might be delisted.")
+            else: 
+                # Display the SPECIFIC error message returned by the function
+                st.error(info_msg)
 
 elif mode == "Compare":
     st.subheader("⚖️ Head-to-Head Comparison")
@@ -459,3 +496,5 @@ elif mode == "Compare":
             with col1: st.metric(s1, f"{m1['total_score']}/10")
             with col2: st.metric(s2, f"{m2['total_score']}/10")
             st.success(f"🏆 Winner: {s1 if m1['total_score'] > m2['total_score'] else s2}")
+
+```
