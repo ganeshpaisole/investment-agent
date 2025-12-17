@@ -9,8 +9,8 @@ import smtplib
 import ssl
 import requests
 import io
-import time  # <--- NEW: For Smart Waits
-import random # <--- NEW: For Randomized Delays
+import time
+import random
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
@@ -30,7 +30,7 @@ USER_ROLES = {
     "client": {"role": "viewer", "name": "Valued Client"}
 }
 
-# --- 3. DATABASE ENGINE (UNIVERSAL SEARCH FORMAT) ---
+# --- 3. DATABASE ENGINE ---
 FAILSAFE_COMPANIES = {
     "Reliance Industries (RELIANCE)": "RELIANCE.NS", "TCS (TCS)": "TCS.NS", 
     "HDFC Bank (HDFCBANK)": "HDFCBANK.NS", "ICICI Bank (ICICIBANK)": "ICICIBANK.NS", 
@@ -128,13 +128,12 @@ def get_market_pulse():
         return {"price": round(price, 2), "change": round(change_val, 2), "pct": round(pct_val, 2), "trend": "BULLISH 🐂" if change_val > 0 else "BEARISH 🐻", "data": df}
     except: return None
 
-# --- 6. CORE ANALYTICS (SMART RETRY MODE) ---
+# --- 6. CORE ANALYTICS (SMART VALUATION) ---
 @st.cache_data(ttl=3600)
 def analyze_stock(ticker):
     ticker = str(ticker).strip().upper()
     
-    # --- RETRY ENGINE ---
-    # We attempt to fetch data 3 times with increasing delays
+    # Retry Logic for Rate Limits
     max_retries = 3
     stock = None
     df = pd.DataFrame()
@@ -144,34 +143,23 @@ def analyze_stock(ticker):
         try:
             stock = yf.Ticker(ticker)
             df = stock.history(period="1y")
-            
-            # If data found, break loop
             if not df.empty:
                 info = stock.info
                 break
-                
-            # If empty, wait and retry
             time.sleep(random.uniform(1.0, 3.0)) 
-            
         except Exception as e:
-            # If rate limited (429), wait longer
-            if "429" in str(e) or "Too Many Requests" in str(e):
-                time.sleep(2 * (attempt + 1)) # Wait 2s, 4s, 6s...
-            else:
-                time.sleep(1)
-                
-    # --- END RETRY ENGINE ---
-
+            time.sleep(1)
+            
     if df.empty:
-        return None, None, f"⚠️ Server Busy (Rate Limited). Please try '{ticker}' again in 10 seconds."
+        return None, None, f"⚠️ Server Busy. Please try '{ticker}' again later."
 
     try:
         current_price = df["Close"].iloc[-1]
         
-        try:
-            ema_200 = EMAIndicator(close=df["Close"], window=200).ema_indicator().iloc[-1]
+        # Technicals
+        try: ema_200 = EMAIndicator(close=df["Close"], window=200).ema_indicator().iloc[-1]
         except: ema_200 = current_price
-
+        
         rsi = RSIIndicator(close=df["Close"], window=14).rsi().iloc[-1]
         stoch = StochasticOscillator(high=df["High"], low=df["Low"], close=df["Close"]).stoch().iloc[-1]
         macd = MACD(close=df["Close"])
@@ -179,18 +167,44 @@ def analyze_stock(ticker):
         bb = BollingerBands(close=df["Close"], window=20)
         df['BB_High'] = bb.bollinger_hband(); df['BB_Low'] = bb.bollinger_lband()
 
-        def get_safe(k): return info.get(k, 0) or 0
-        eps = get_safe('trailingEps')
-        book_value = get_safe('bookValue')
-        pe = get_safe('trailingPE')
-        margins = get_safe('profitMargins')
-        debt = get_safe('debtToEquity')
-        roe = get_safe('returnOnEquity')
-        peg = get_safe('pegRatio')
+        # --- SMART FUNDAMENTALS EXTRACTION ---
+        def get_val(keys):
+            # Tries multiple keys to find data (Yahoo is inconsistent)
+            for k in keys:
+                if k in info and info[k] is not None:
+                    return info[k]
+            return 0
+
+        pe = get_val(['trailingPE', 'forwardPE'])
+        pb = get_val(['priceToBook'])
         
+        # 1. Smart EPS: Try direct -> Try calculate from PE
+        eps = get_val(['trailingEps', 'forwardEps'])
+        if eps == 0 and pe > 0: 
+            eps = current_price / pe
+            
+        # 2. Smart Book Value: Try direct -> Try calculate from PB
+        book_value = get_val(['bookValue'])
+        if book_value == 0 and pb > 0:
+            book_value = current_price / pb
+
+        margins = get_val(['profitMargins'])
+        debt = get_val(['debtToEquity'])
+        roe = get_val(['returnOnEquity'])
+        peg = get_val(['pegRatio'])
+        
+        # 3. Fair Value Calculation (Graham Number)
         intrinsic_value = 0
-        if eps > 0 and book_value > 0: intrinsic_value = math.sqrt(22.5 * eps * book_value)
+        valuation_note = ""
         
+        if eps > 0 and book_value > 0:
+            intrinsic_value = math.sqrt(22.5 * eps * book_value)
+        elif eps < 0:
+            valuation_note = "Company is Loss-Making (Negative EPS). Fair Value N/A."
+        else:
+            valuation_note = "Insufficient Data (Missing EPS/Book Value)."
+
+        # Scores
         t_score = sum([current_price > ema_200, 40 < rsi < 70, stoch < 80, df['MACD'].iloc[-1] > df['MACD_Signal'].iloc[-1]])
         f_score = sum([0 < pe < 40, margins > 0.10, debt < 100, roe > 0.15])
 
@@ -201,24 +215,24 @@ def analyze_stock(ticker):
             "roe": round(roe*100, 2), "debt": round(debt, 2), "peg": peg,
             "trend": "UP 🟢" if current_price > ema_200 else "DOWN 🔴",
             "intrinsic": round(intrinsic_value, 2),
+            "val_note": valuation_note, # <--- Pass the reason to UI
             "eps": eps, "book_value": book_value, "sector": info.get('sector', 'General')
         }
         return metrics, df, info
     except Exception as e: 
-        return None, None, f"⚠️ ERROR: {str(e)}"
+        return None, None, f"⚠️ Analysis Error: {str(e)}"
 
 # --- 7. FAST SCANNER ---
 @st.cache_data(ttl=600)
 def get_nse_data(tickers):
     results = []
-    # Small delay to prevent burst rate limits
     for t in tickers:
         try:
             h = yf.Ticker(t).history(period="1d")
             if not h.empty:
                 p = h["Close"].iloc[-1]
                 results.append({"Ticker": t, "Price": round(p, 2), "Change %": 0})
-            time.sleep(0.1) # Tiny pause to be nice to Yahoo
+            time.sleep(0.05) # Tiny pause
         except: continue
     return pd.DataFrame(results)
 
@@ -432,8 +446,10 @@ elif mode == "Deep Dive Valuation":
                     st.success("✅ STRENGTHS"); [st.write(p) for p in pros_list]
                     st.error("❌ WEAKNESSES"); [st.write(c) for c in cons_list]
                 with tab3:
-                    if metrics['intrinsic'] > 0: st.metric("Fair Value", f"₹{metrics['intrinsic']}")
-                    else: st.error("Cannot calculate Fair Value.")
+                    if metrics['intrinsic'] > 0: 
+                        st.metric("Fair Value", f"₹{metrics['intrinsic']}")
+                    else: 
+                        st.error(f"Cannot calculate Fair Value. Reason: {metrics.get('val_note', 'Data Missing')}")
                 with tab4: st.write(metrics.get('sector', 'No summary.'))
                 with tab5:
                     company_news = get_company_news(ticker)
