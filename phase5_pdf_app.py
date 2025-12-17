@@ -116,17 +116,68 @@ def check_login():
         st.stop()
 check_login()
 
-# --- 5. MARKET PULSE ---
-def get_market_pulse():
+# --- 5. MARKET PULSE (ENHANCED LIVE FEED) ---
+def get_market_pulse(period="1d"):
+    """
+    Fetches market data with dynamic intervals based on period.
+    1d -> 5m interval (Live/Hourly view)
+    5d -> 15m interval
+    1mo+ -> 1d interval
+    """
     try:
-        df = yf.Ticker("^NSEI").history(period="5d")
+        # Determine optimal interval
+        interval = "1d"
+        if period == "1d": interval = "5m"
+        elif period == "5d": interval = "15m"
+        elif period == "1mo": interval = "60m"
+        
+        df = yf.Ticker("^NSEI").history(period=period, interval=interval)
+        
         if df.empty: return None
+        
         price = df["Close"].iloc[-1]
-        prev_close = df["Close"].iloc[-2] if len(df) > 1 else df["Open"].iloc[-1]
-        change_val = price - prev_close
-        pct_val = (change_val / prev_close) * 100
-        return {"price": round(price, 2), "change": round(change_val, 2), "pct": round(pct_val, 2), "trend": "BULLISH 🐂" if change_val > 0 else "BEARISH 🐻", "data": df}
+        
+        # Calculate change based on open of the first candle in the period
+        start_price = df["Open"].iloc[0]
+        change_val = price - start_price
+        pct_val = (change_val / start_price) * 100
+        
+        return {
+            "price": round(price, 2),
+            "change": round(change_val, 2),
+            "pct": round(pct_val, 2),
+            "trend": "BULLISH 🐂" if change_val > 0 else "BEARISH 🐻",
+            "data": df,
+            "period_label": period.upper()
+        }
     except: return None
+
+def plot_market_pulse_chart(data, period):
+    fig = go.Figure()
+    
+    # Use Candlestick for shorter timeframes, Line for long term
+    if period in ["1d", "5d", "1mo"]:
+        fig.add_trace(go.Candlestick(
+            x=data.index,
+            open=data['Open'], high=data['High'],
+            low=data['Low'], close=data['Close'],
+            name="Nifty 50"
+        ))
+    else:
+        fig.add_trace(go.Scatter(
+            x=data.index, y=data['Close'], 
+            mode='lines', name="Nifty 50", 
+            line=dict(color='#00C805' if data['Close'].iloc[-1] > data['Open'].iloc[0] else '#FF5000', width=2)
+        ))
+
+    fig.update_layout(
+        title=f"Nifty 50 - {period.upper()} View",
+        height=400, # BIGGER GRAPH
+        xaxis_rangeslider_visible=False,
+        margin=dict(l=10, r=10, t=30, b=10),
+        template="plotly_dark"
+    )
+    return fig
 
 # --- 6. CORE ANALYTICS ---
 @st.cache_data(ttl=3600)
@@ -186,7 +237,6 @@ def analyze_stock(ticker):
         peg = get_val(['pegRatio'])
         beta = get_val(['beta'])
         
-        # Extended Financials with Fallback
         revenue = get_val(['totalRevenue'])
         net_income = get_val(['netIncomeToCommon'])
         
@@ -235,7 +285,7 @@ def analyze_stock(ticker):
     except Exception as e: 
         return None, None, f"⚠️ Analysis Error: {str(e)}"
 
-# --- 7. HELPER FUNCTIONS (SWOT ENGINE) ---
+# --- 7. HELPER FUNCTIONS ---
 def generate_key_factors(m):
     factors = []
     if m['pe'] < 20 and m['pe'] > 0: factors.append("🟢 **Attractive Valuation:** P/E Ratio is low.")
@@ -251,7 +301,6 @@ def generate_swot(m):
     pros = []
     cons = []
     
-    # --- STRENGTHS (Ensure at least 3) ---
     if m['pe'] > 0 and m['pe'] < 25: pros.append(f"✅ **Attractive Valuation:** P/E of {m['pe']} is reasonable.")
     if m['margins'] > 10: pros.append(f"✅ **High Profitability:** Net margins of {m['margins']}% are healthy.")
     if m['roe'] > 15: pros.append(f"✅ **Efficient Management:** Return on Equity is strong at {m['roe']}%.")
@@ -260,13 +309,11 @@ def generate_swot(m):
     if m['trend'] == "UP 🟢": pros.append("✅ **Uptrend:** Stock is trading above its 200-Day Moving Average.")
     if m['peg'] > 0 and m['peg'] < 1: pros.append("✅ **Growth at Good Price:** PEG Ratio is under 1.0.")
     
-    # Fallback Strengths (if list is short)
     if len(pros) < 3:
         if m['beta'] < 1: pros.append("✅ **Low Volatility:** Stock is less volatile than the market.")
         if m['rsi'] < 40: pros.append("✅ **Oversold Zone:** RSI indicates potential for a bounce.")
         if m['revenue'] > 0: pros.append("✅ **Revenue Generating:** Company has established revenue streams.")
 
-    # --- WEAKNESSES (Ensure at least 3) ---
     if m['pe'] > 50: cons.append(f"❌ **Expensive:** P/E of {m['pe']} is quite high.")
     if m['margins'] < 5: cons.append(f"❌ **Thin Margins:** Net margins are low ({m['margins']}%) or negative.")
     if m['roe'] < 10: cons.append(f"❌ **Low Efficiency:** ROE of {m['roe']}% is below par.")
@@ -275,13 +322,12 @@ def generate_swot(m):
     if m['trend'] == "DOWN 🔴": cons.append("❌ **Downtrend:** Stock is trading below its 200-Day Moving Average.")
     if m['peg'] > 2: cons.append("❌ **Pricey Growth:** PEG Ratio indicates growth is expensive.")
     
-    # Fallback Weaknesses (if list is short)
     if len(cons) < 3:
         if m['beta'] > 1.5: cons.append("❌ **High Volatility:** Stock is significantly more volatile than the market.")
         if m['rsi'] > 70: cons.append("❌ **Overbought:** RSI indicates stock might correct soon.")
         if m['val_note'] == "Market Price": cons.append("❌ **Lack of Fundamental Data:** Valuation is uncertain due to missing data.")
 
-    return pros[:5], cons[:5] # Return top 5 of each
+    return pros[:5], cons[:5]
 
 def plot_chart(df, ticker):
     fig = go.Figure()
@@ -426,14 +472,32 @@ with st.sidebar:
     if st.button("Logout"): st.session_state.update({"logged_in": False}); st.rerun()
 
 st.title("📊 Principal Hybrid Engine")
-with st.expander("🇮🇳 NSE Market Pulse", expanded=True):
-    p = get_market_pulse()
-    if p:
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Nifty 50", p['price'], f"{p['pct']}%")
-        c2.metric("Trend", p['trend'])
-        c3.metric("Change", p['change'])
-        with c4: st.line_chart(p['data']['Close'], height=100)
+
+# --- UPGRADED MARKET PULSE ---
+with st.expander("🇮🇳 NSE Market Pulse (Live)", expanded=True):
+    col_sel, col_data = st.columns([1, 4])
+    with col_sel:
+        # Timeframe Selector
+        timeframe = st.radio("Timeframe", ["1D", "5D", "1M", "6M", "1Y", "5Y"], horizontal=True, index=0)
+    
+    # Map timeframe to Yahoo period
+    tf_map = {"1D": "1d", "5D": "5d", "1M": "1mo", "6M": "6mo", "1Y": "1y", "5Y": "5y"}
+    selected_period = tf_map[timeframe]
+    
+    # Fetch Data
+    p_data = get_market_pulse(selected_period)
+    
+    if p_data:
+        # Metrics Row
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Nifty 50 Level", f"₹{p_data['price']}")
+        m2.metric("Change", f"{p_data['change']}", f"{p_data['pct']}%")
+        m3.metric("Trend", p_data['trend'])
+        
+        # Interactive Chart
+        st.plotly_chart(plot_market_pulse_chart(p_data['data'], selected_period), use_container_width=True)
+    else:
+        st.warning("Market data temporarily unavailable. Try refreshing.")
 
 if mode == "Aimagica (Golden 5)":
     st.subheader("✨ Aimagica: The Golden Opportunity Engine")
