@@ -7,11 +7,14 @@ import plotly.graph_objects as go
 import feedparser
 import smtplib
 import ssl
+import requests  # <--- NEW: For bypassing NSE Firewall
+import io        # <--- NEW: For reading the CSV data
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from twilio.rest import Client
+from yahooquery import Ticker as YQTicker
 from ta.momentum import RSIIndicator, StochasticOscillator
 from ta.trend import EMAIndicator, MACD
 from ta.volatility import BollingerBands
@@ -26,7 +29,8 @@ USER_ROLES = {
     "client": {"role": "viewer", "name": "Valued Client"}
 }
 
-# --- 3. DATABASE ENGINE ---
+# --- 3. DATABASE ENGINE (OMNISCIENT UPGRADE) ---
+# ROBUST DEFAULT LIST (Backup if Internet Fails)
 DEFAULT_COMPANIES = {
     "Reliance Industries": "RELIANCE.NS", "TCS": "TCS.NS", "HDFC Bank": "HDFCBANK.NS",
     "ICICI Bank": "ICICIBANK.NS", "Infosys": "INFY.NS", "State Bank of India": "SBIN.NS",
@@ -37,16 +41,17 @@ DEFAULT_COMPANIES = {
     "Tata Motors": "TATAMOTORS.NS", "Mahindra & Mahindra": "M&M.NS", "Bajaj Auto": "BAJAJ-AUTO.NS",
     "Eicher Motors": "EICHERMOT.NS", "Hero MotoCorp": "HEROMOTOCO.NS", "TVS Motor": "TVSMOTOR.NS",
     "HCL Tech": "HCLTECH.NS", "Wipro": "WIPRO.NS", "Tech Mahindra": "TECHM.NS",
-    "LTIMindtree": "LTIM.NS", "Zomato": "ZOMATO.NS", "Paytm": "PAYTM.NS",
+    "LTIMindtree": "LTIM.NS", "Zomato": "ZOMATO.NS", "Paytm": "PAYTM.NS", 
+    "PB Fintech (PolicyBazaar)": "POLICYBZR.NS",
     "Axis Bank": "AXISBANK.NS", "IndusInd Bank": "INDUSINDBK.NS", "Bank of Baroda": "BANKBARODA.NS",
     "Punjab National Bank": "PNB.NS", "IDFC First Bank": "IDFCFIRSTB.NS", "Bajaj Finserv": "BAJAJFINSV.NS",
-    "Jio Financial": "JIOFIN.NS", "IREDA": "IREDA.NS", "REC Ltd": "REC.NS", "PFC": "PFC.NS",
+    "Jio Financial": "JIOFIN.NS", "IREDA": "IREDA.NS", "REC Ltd": "RECLTD.NS", "PFC": "PFC.NS",
     "NTPC": "NTPC.NS", "Power Grid": "POWERGRID.NS", "ONGC": "ONGC.NS",
     "Coal India": "COALINDIA.NS", "Tata Power": "TATAPOWER.NS", "Adani Green": "ADANIGREEN.NS",
     "Adani Power": "ADANIPOWER.NS", "Suzlon Energy": "SUZLON.NS",
     "Tata Steel": "TATASTEEL.NS", "JSW Steel": "JSWSTEEL.NS", "Hindalco": "HINDALCO.NS",
     "Adani Enterprises": "ADANIENT.NS", "Adani Ports": "ADANIPORTS.NS", "Adani Total Gas": "ATGL.NS",
-    "Nestle India": "NESTLEIND.NS", "Britannia": "BRITANNIA.NS", "Varun Beverages": "VARUN.NS",
+    "Nestle India": "NESTLEIND.NS", "Britannia": "BRITANNIA.NS", "Varun Beverages": "VBL.NS",
     "Dr Reddys Labs": "DRREDDY.NS", "Cipla": "CIPLA.NS", "Apollo Hospitals": "APOLLOHOSP.NS",
     "Divis Labs": "DIVISLAB.NS", "Lupin": "LUPIN.NS", "Trent": "TRENT.NS", "DMart": "DMART.NS",
     "HAL": "HAL.NS", "Bharat Electronics": "BEL.NS", "Mazagon Dock": "MAZDOCK.NS"
@@ -54,17 +59,53 @@ DEFAULT_COMPANIES = {
 
 @st.cache_data(ttl=24*3600)
 def load_nse_master_list():
+    """
+    Fetches the OFFICIAL Master List from NSE Archives (1900+ Stocks).
+    Uses 'User-Agent' headers to look like a Chrome Browser and bypass the firewall.
+    """
     master_dict = DEFAULT_COMPANIES.copy()
-    try:
-        url = "https://raw.githubusercontent.com/sfini/NSE-Data/master/EQUITY_L.csv"
-        df = pd.read_csv(url)
-        if 'SYMBOL' in df.columns and 'NAME OF COMPANY' in df.columns:
-            for index, row in df.iterrows():
-                symbol = row['SYMBOL']
-                name = row['NAME OF COMPANY']
-                master_dict[f"{name} ({symbol})"] = f"{symbol}.NS"
-        return master_dict
-    except: return DEFAULT_COMPANIES
+    
+    # 1. Define Sources
+    sources = [
+        "https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv", # Official NSE
+        "https://raw.githubusercontent.com/sfini/NSE-Data/master/EQUITY_L.csv" # GitHub Mirror
+    ]
+    
+    # 2. Fake Browser Headers (The Key to Unlocking NSE)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
+    
+    for url in sources:
+        try:
+            response = requests.get(url, headers=headers, timeout=5)
+            if response.status_code == 200:
+                csv_data = io.StringIO(response.text)
+                df = pd.read_csv(csv_data)
+                
+                # 3. Process the Full List
+                if 'SYMBOL' in df.columns and 'NAME OF COMPANY' in df.columns:
+                    for index, row in df.iterrows():
+                        symbol = row['SYMBOL']
+                        name = row['NAME OF COMPANY']
+                        
+                        # CLEANUP: Handle special cases
+                        yahoo_symbol = f"{symbol}.NS"
+                        
+                        # Handle known Yahoo discrepancies manually
+                        if symbol == "VARUN": yahoo_symbol = "VBL.NS"
+                        if symbol == "REC": yahoo_symbol = "RECLTD.NS"
+                        
+                        master_dict[f"{name} ({symbol})"] = yahoo_symbol
+                    
+                    # If successful, break loop (don't try next source)
+                    print(f"Successfully loaded {len(master_dict)} stocks from {url}")
+                    break
+        except Exception as e:
+            print(f"Failed to fetch from {url}: {e}")
+            continue
+            
+    return master_dict
 
 NSE_COMPANIES = load_nse_master_list()
 
@@ -108,7 +149,7 @@ def get_market_pulse():
         return {"price": round(price, 2), "change": round(price-prev, 2), "pct": round(((price-prev)/prev)*100, 2), "trend": "BULLISH 🐂" if price > df["Close"].mean() else "BEARISH 🐻", "data": df}
     except: return None
 
-# --- 6. CORE ANALYTICS ---
+# --- 6. CORE ANALYTICS (DEEP DIVE) ---
 @st.cache_data(ttl=24*3600)
 def analyze_stock(ticker):
     try:
@@ -162,28 +203,56 @@ def analyze_stock(ticker):
         return metrics, df, info
     except Exception as e: return None, None, str(e)
 
-# --- 7. AIMAGICA ALGORITHM ---
+# --- 7. NEW AIMAGICA ALGORITHM (TURBO MODE) ---
+@st.cache_data(ttl=3600)
 def run_aimagica_scan(stock_list):
     results = []
-    for ticker in stock_list:
-        try:
-            m, _, _ = analyze_stock(ticker)
-            if not m: continue
-            val_score = 20 if (m['intrinsic']>0 and m['price']<m['intrinsic']) else 0
-            if m['price'] < m['intrinsic'] * 0.7: val_score += 10
-            rev_score = 10 if m['rsi']<40 else 0
-            if "UP" in m['trend']: rev_score += 15
-            qual_score = 10 if m['margins']>15 else 0
-            grow_score = 15 if (0<m['peg']<1.5) else 0
-            final_aimagica_score = val_score + rev_score + qual_score + grow_score
-            
-            if final_aimagica_score > 50:
-                results.append({
-                    "Ticker": ticker, "Price": m['price'], "Aimagica Score": final_aimagica_score,
-                    "Why": f"Val: {val_score}/30 | Mom: {rev_score}/25",
-                    "Upside": round(((m['intrinsic'] - m['price'])/m['price'])*100, 1) if m['intrinsic'] > 0 else 0
-                })
-        except: continue
+    try:
+        yq = YQTicker(stock_list, asynchronous=True)
+        summary_details = yq.summary_detail
+        key_stats = yq.key_stats
+        financial_data = yq.financial_data
+        
+        for ticker in stock_list:
+            try:
+                if isinstance(summary_details, dict) and ticker in summary_details:
+                    sd = summary_details[ticker]
+                    ks = key_stats[ticker] if isinstance(key_stats, dict) and ticker in key_stats else {}
+                    fd = financial_data[ticker] if isinstance(financial_data, dict) and ticker in financial_data else {}
+                    
+                    if isinstance(sd, str) or isinstance(sd, dict) == False: continue
+
+                    price = fd.get('currentPrice', 0)
+                    if not price: price = sd.get('previousClose', 0)
+                    
+                    eps = ks.get('trailingEps', 0) or 0
+                    book_value = ks.get('bookValue', 0) or 0
+                    margins = fd.get('profitMargins', 0) or 0
+                    peg = ks.get('pegRatio', 0) or 0
+                    
+                    intrinsic = 0
+                    if eps > 0 and book_value > 0: intrinsic = math.sqrt(22.5 * eps * book_value)
+                    
+                    ma_50 = sd.get('fiftyDayAverage', 0) or price
+                    trend_score = 15 if price > ma_50 else 0
+                    
+                    val_score = 0
+                    if intrinsic > 0 and price < intrinsic: val_score += 20
+                    if price < intrinsic * 0.7: val_score += 10
+                    qual_score = 10 if margins > 0.15 else 0
+                    grow_score = 15 if 0 < peg < 1.5 else 0
+                    
+                    final_score = val_score + trend_score + qual_score + grow_score
+                    
+                    if final_score > 40:
+                        results.append({
+                            "Ticker": ticker, "Price": price, "Aimagica Score": final_score,
+                            "Why": f"Val: {val_score}/30 | Trend: {trend_score}/15",
+                            "Upside": round(((intrinsic - price)/price)*100, 1) if intrinsic > 0 else 0
+                        })
+            except: continue
+    except Exception as e: return pd.DataFrame()
+    
     df_res = pd.DataFrame(results)
     if not df_res.empty: df_res = df_res.sort_values("Aimagica Score", ascending=False).head(5)
     return df_res
@@ -199,15 +268,20 @@ def generate_swot(m):
     if m['intrinsic'] > 0 and m['price'] < m['intrinsic']: pros.append("Below Intrinsic Value.")
     return pros, cons
 
-def run_scanner(tickers):
+def run_scanner_fast(tickers):
     res = []
-    for t in tickers:
-        try:
-            h = yf.Ticker(t).history(period="1y")
-            if h.empty: continue
-            p, l = h["Close"].iloc[-1], h["Low"].min()
-            res.append({"Ticker": t, "Price": round(p, 2), "52W Low": round(l, 2), "Dist 52W Low (%)": round(((p-l)/l)*100, 2)})
-        except: continue
+    try:
+        yq = YQTicker(tickers, asynchronous=True)
+        summary = yq.summary_detail
+        for t in tickers:
+            try:
+                if t in summary and isinstance(summary[t], dict):
+                    data = summary[t]
+                    p = data.get('previousClose', 0)
+                    l = data.get('fiftyTwoWeekLow', 0)
+                    if p and l: res.append({"Ticker": t, "Price": round(p, 2), "52W Low": round(l, 2), "Dist 52W Low (%)": round(((p-l)/l)*100, 2)})
+            except: continue
+    except: pass
     return pd.DataFrame(res)
 
 def plot_chart(df, ticker):
@@ -256,23 +330,18 @@ def get_company_news(ticker):
         return [{"title": n['title'], "link": n['link'], "publisher": n.get('publisher', 'Yahoo')} for n in yf.Ticker(ticker).news[:5]]
     except: return []
 
-# --- 10. NOTIFICATION ENGINE (NEW!) ---
+# --- 10. NOTIFICATION ENGINE ---
 def send_email_alert(subject, body):
     try:
         sender = st.secrets["notifications"]["email_sender"]
         password = st.secrets["notifications"]["email_password"]
         receiver = st.secrets["notifications"]["email_receiver"]
-        
         msg = MIMEMultipart()
-        msg['From'] = sender
-        msg['To'] = receiver
-        msg['Subject'] = subject
+        msg['From'] = sender; msg['To'] = receiver; msg['Subject'] = subject
         msg.attach(MIMEText(body, 'plain'))
-        
         context = ssl.create_default_context()
         with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
-            server.login(sender, password)
-            server.sendmail(sender, receiver, msg.as_string())
+            server.login(sender, password); server.sendmail(sender, receiver, msg.as_string())
         return True, "Email Sent"
     except Exception as e: return False, str(e)
 
@@ -282,36 +351,27 @@ def send_whatsapp_alert(body):
         token = st.secrets["notifications"]["twilio_token"]
         from_num = st.secrets["notifications"]["twilio_from"]
         to_num = st.secrets["notifications"]["twilio_to"]
-        
         client = Client(sid, token)
         message = client.messages.create(body=body, from_=from_num, to=to_num)
         return True, f"WhatsApp Sent (SID: {message.sid})"
     except Exception as e: return False, str(e)
 
 def trigger_daily_report():
-    """Runs Aimagica, finds Golden 5, and sends alerts."""
-    print("Running Daily Scheduler...")
     scan_list = list(DEFAULT_COMPANIES.values())
     top_5 = run_aimagica_scan(scan_list)
-    
     if not top_5.empty:
-        # Format Message
         msg_body = "🚀 *Principal AI Golden 5 Report* 🚀\n\n"
         for i, row in top_5.iterrows():
             msg_body += f"{i+1}. *{row['Ticker']}* (Score: {int(row['Aimagica Score'])})\n"
             msg_body += f"   Price: {row['Price']} | Upside: {row['Upside']}%\n"
         msg_body += "\n⚠️ Generated by Principal AI Agent."
-        
-        # Send
         e_ok, e_msg = send_email_alert("Golden 5 Stock Report", msg_body)
         w_ok, w_msg = send_whatsapp_alert(msg_body)
         return f"Report Generated. {e_msg}. {w_msg}."
     return "No Golden Opportunities found today."
 
-# Initialize Scheduler only once
 if 'scheduler' not in st.session_state:
     scheduler = BackgroundScheduler()
-    # Schedule for 09:30 AM IST (Timezone handling simplified)
     scheduler.add_job(trigger_daily_report, 'cron', hour=9, minute=30)
     scheduler.start()
     st.session_state['scheduler'] = scheduler
@@ -336,11 +396,10 @@ with st.expander("🇮🇳 NSE Market Pulse", expanded=True):
 
 if mode == "Aimagica (Golden 5)":
     st.subheader("✨ Aimagica: The Golden Opportunity Engine")
-    
     c1, c2 = st.columns([3, 1])
     with c1:
         if st.button("🔮 Reveal Top 5 Opportunities"):
-            with st.spinner("AI is synthesizing market data..."):
+            with st.spinner("AI is synthesizing market data (Turbo Mode)..."):
                 scan_list = list(DEFAULT_COMPANIES.values())
                 top_5 = run_aimagica_scan(scan_list)
                 if not top_5.empty:
@@ -351,20 +410,14 @@ if mode == "Aimagica (Golden 5)":
                             st.markdown(f"### {row['Ticker']}")
                             st.metric("Price", f"₹{row['Price']}", delta=f"{row['Upside']}% Upside")
                             st.progress(row['Aimagica Score']/100)
-                    st.divider()
-                    st.dataframe(top_5, hide_index=True)
+                    st.divider(); st.dataframe(top_5, hide_index=True)
                 else: st.warning("No Golden opportunities found.")
-    
-    # --- AUTOMATION PANEL ---
     with c2:
         st.info("🔔 **Daily Automation**")
-        st.caption("Scheduled for 09:30 AM IST")
         if st.button("📧 Test Alerts Now"):
             with st.spinner("Sending Email & WhatsApp..."):
-                result = trigger_daily_report()
-                st.success(result)
+                result = trigger_daily_report(); st.success(result)
 
-# ... (Previous Market Scanner, Deep Dive, Compare code remains exact same) ...
 elif mode == "Market Scanner":
     st.subheader("📡 Market Radar")
     t1, t2, t3 = st.tabs(["Sector Leaders", "Value Hunters", "📰 Market News"])
@@ -373,14 +426,14 @@ elif mode == "Market Scanner":
             sec = st.selectbox("Select Sector:", list(SECTORS.keys()))
             submitted = st.form_submit_button("Scan Sector")
         if submitted:
-            with st.spinner(f"Scanning {sec}..."):
-                d = run_scanner(SECTORS[sec])
+            with st.spinner(f"Scanning {sec} (Turbo)..."):
+                d = run_scanner_fast(SECTORS[sec])
                 st.dataframe(d)
     with t2:
         if st.button("Find 52-Week Lows"):
-            with st.spinner("Hunting..."):
+            with st.spinner("Hunting (Turbo)..."):
                 all_s = list(DEFAULT_COMPANIES.values())
-                d = run_scanner(all_s)
+                d = run_scanner_fast(all_s)
                 st.dataframe(d.sort_values("Dist 52W Low (%)").head(10))
     with t3:
         news_topic = st.selectbox("Topic:", ["Indian Economy", "Indian Stock Market"])
@@ -403,7 +456,7 @@ elif mode == "Deep Dive Valuation":
                 c1.metric("Overall Score", f"{metrics['total_score']}/10")
                 c2.metric("Tech Strength", f"{metrics['tech_score']}/5")
                 c3.metric("Fund Health", f"{metrics['fund_score']}/5")
-                tab1, tab2, tab3 = st.tabs(["📈 Forecast", "✅ SWOC", "🎩 Valuation"])
+                tab1, tab2, tab3, tab4, tab5 = st.tabs(["📈 Forecast", "✅ SWOC", "🎩 Valuation", "🏢 Financials", "📰 News & Events"])
                 with tab1: st.plotly_chart(plot_chart(history, ticker), use_container_width=True)
                 with tab2: 
                     st.success("✅ STRENGTHS"); [st.write(p) for p in pros_list]
@@ -411,6 +464,13 @@ elif mode == "Deep Dive Valuation":
                 with tab3:
                     if metrics['intrinsic'] > 0: st.metric("Fair Value", f"₹{metrics['intrinsic']}")
                     else: st.error("Cannot calculate Fair Value.")
+                with tab4: st.write(info.get('longBusinessSummary', 'No summary.'))
+                with tab5:
+                    company_news = get_company_news(ticker)
+                    if company_news: [st.markdown(f"**[{n['title']}]({n['link']})**") for n in company_news]
+                verdict = f"Fair Value: {metrics['intrinsic']}. Score: {metrics['total_score']}/10."
+                pdf = create_pdf(ticker, metrics, pros_list, cons_list, verdict)
+                st.download_button("Download Report", data=pdf, file_name=f"{ticker}_Report.pdf", mime="application/pdf")
 
 elif mode == "Compare":
     st.subheader("⚖️ Head-to-Head Comparison")
@@ -420,8 +480,7 @@ elif mode == "Compare":
         s2_name = c2.selectbox("Stock B", options=list(NSE_COMPANIES.keys()), index=1)
         submitted = st.form_submit_button("Compare Stocks")
     if submitted:
-        s1 = NSE_COMPANIES[s1_name]
-        s2 = NSE_COMPANIES[s2_name]
+        s1 = NSE_COMPANIES[s1_name]; s2 = NSE_COMPANIES[s2_name]
         m1, _, _ = analyze_stock(s1); m2, _, _ = analyze_stock(s2)
         if m1 and m2:
             col1, col2 = st.columns(2)
