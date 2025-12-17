@@ -9,4 +9,3 @@ feedparser
 requests
 apscheduler
 twilio
-nsepython
