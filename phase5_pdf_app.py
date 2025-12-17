@@ -128,12 +128,12 @@ def get_market_pulse():
         return {"price": round(price, 2), "change": round(change_val, 2), "pct": round(pct_val, 2), "trend": "BULLISH 🐂" if change_val > 0 else "BEARISH 🐻", "data": df}
     except: return None
 
-# --- 6. CORE ANALYTICS (SMART VALUATION) ---
+# --- 6. CORE ANALYTICS (VALUATION WATERFALL) ---
 @st.cache_data(ttl=3600)
 def analyze_stock(ticker):
     ticker = str(ticker).strip().upper()
     
-    # Retry Logic for Rate Limits
+    # Retry Loop
     max_retries = 3
     stock = None
     df = pd.DataFrame()
@@ -156,7 +156,7 @@ def analyze_stock(ticker):
     try:
         current_price = df["Close"].iloc[-1]
         
-        # Technicals
+        # Techs
         try: ema_200 = EMAIndicator(close=df["Close"], window=200).ema_indicator().iloc[-1]
         except: ema_200 = current_price
         
@@ -167,9 +167,8 @@ def analyze_stock(ticker):
         bb = BollingerBands(close=df["Close"], window=20)
         df['BB_High'] = bb.bollinger_hband(); df['BB_Low'] = bb.bollinger_lband()
 
-        # --- SMART FUNDAMENTALS EXTRACTION ---
+        # --- SMART DATA EXTRACTION ---
         def get_val(keys):
-            # Tries multiple keys to find data (Yahoo is inconsistent)
             for k in keys:
                 if k in info and info[k] is not None:
                     return info[k]
@@ -178,31 +177,36 @@ def analyze_stock(ticker):
         pe = get_val(['trailingPE', 'forwardPE'])
         pb = get_val(['priceToBook'])
         
-        # 1. Smart EPS: Try direct -> Try calculate from PE
+        # Data Recovery
         eps = get_val(['trailingEps', 'forwardEps'])
-        if eps == 0 and pe > 0: 
-            eps = current_price / pe
+        if eps == 0 and pe > 0: eps = current_price / pe
             
-        # 2. Smart Book Value: Try direct -> Try calculate from PB
         book_value = get_val(['bookValue'])
-        if book_value == 0 and pb > 0:
-            book_value = current_price / pb
+        if book_value == 0 and pb > 0: book_value = current_price / pb
 
         margins = get_val(['profitMargins'])
         debt = get_val(['debtToEquity'])
         roe = get_val(['returnOnEquity'])
         peg = get_val(['pegRatio'])
         
-        # 3. Fair Value Calculation (Graham Number)
+        # --- VALUATION WATERFALL ---
+        # 1. Try Graham Number (Strict)
         intrinsic_value = 0
         valuation_note = ""
         
         if eps > 0 and book_value > 0:
             intrinsic_value = math.sqrt(22.5 * eps * book_value)
-        elif eps < 0:
-            valuation_note = "Company is Loss-Making (Negative EPS). Fair Value N/A."
-        else:
-            valuation_note = "Insufficient Data (Missing EPS/Book Value)."
+            valuation_note = "Graham Number (Value)"
+            
+        # 2. Fallback: Analyst Target (Growth/Loss-Making Stocks)
+        if intrinsic_value == 0:
+            target = get_val(['targetMeanPrice', 'targetMedianPrice'])
+            if target > 0:
+                intrinsic_value = target
+                valuation_note = "Analyst Price Target"
+            else:
+                intrinsic_value = current_price # Neutral fallback
+                valuation_note = "Market Price (Data Insufficient)"
 
         # Scores
         t_score = sum([current_price > ema_200, 40 < rsi < 70, stoch < 80, df['MACD'].iloc[-1] > df['MACD_Signal'].iloc[-1]])
@@ -215,7 +219,7 @@ def analyze_stock(ticker):
             "roe": round(roe*100, 2), "debt": round(debt, 2), "peg": peg,
             "trend": "UP 🟢" if current_price > ema_200 else "DOWN 🔴",
             "intrinsic": round(intrinsic_value, 2),
-            "val_note": valuation_note, # <--- Pass the reason to UI
+            "val_note": valuation_note,
             "eps": eps, "book_value": book_value, "sector": info.get('sector', 'General')
         }
         return metrics, df, info
@@ -232,7 +236,7 @@ def get_nse_data(tickers):
             if not h.empty:
                 p = h["Close"].iloc[-1]
                 results.append({"Ticker": t, "Price": round(p, 2), "Change %": 0})
-            time.sleep(0.05) # Tiny pause
+            time.sleep(0.05)
         except: continue
     return pd.DataFrame(results)
 
@@ -244,8 +248,13 @@ def run_aimagica_scan(stock_list):
             m, _, _ = analyze_stock(ticker)
             if not m: continue
             
-            val_score = 20 if (m['intrinsic'] > 0 and m['price'] < m['intrinsic']) else 0
-            if m['price'] < m['intrinsic'] * 0.7: val_score += 10
+            # Smart Scoring for Growth vs Value
+            val_score = 0
+            if "Graham" in m['val_note']:
+                 if m['price'] < m['intrinsic']: val_score = 25
+            elif "Analyst" in m['val_note']:
+                 if m['price'] < m['intrinsic'] * 0.9: val_score = 20 # Require 10% safety on Analyst Target
+            
             rev_score = 10 if m['rsi'] < 40 else 0
             if "UP" in m['trend']: rev_score += 15
             qual_score = 10 if m['margins'] > 15 else 0
@@ -256,7 +265,7 @@ def run_aimagica_scan(stock_list):
             if final_score > 40:
                 results.append({
                     "Ticker": ticker, "Price": m['price'], "Aimagica Score": final_score,
-                    "Why": f"Val: {val_score}/30 | Mom: {rev_score}/25",
+                    "Why": f"Method: {m['val_note']}",
                     "Upside": round(((m['intrinsic'] - m['price'])/m['price'])*100, 1) if m['intrinsic'] > 0 else 0
                 })
         except: continue
@@ -272,7 +281,7 @@ def generate_swot(m):
     if m['margins'] > 15: pros.append(f"High Profit Margins ({m['margins']}%).")
     if m['debt'] < 50: pros.append("Company has low debt levels.")
     if m['rsi'] < 30: pros.append("Technically Oversold.")
-    if m['intrinsic'] > 0 and m['price'] < m['intrinsic']: pros.append("Below Intrinsic Value.")
+    if m['intrinsic'] > 0 and m['price'] < m['intrinsic']: pros.append(f"Below Fair Value ({m['val_note']}).")
     return pros, cons
 
 def plot_chart(df, ticker):
@@ -447,14 +456,14 @@ elif mode == "Deep Dive Valuation":
                     st.error("❌ WEAKNESSES"); [st.write(c) for c in cons_list]
                 with tab3:
                     if metrics['intrinsic'] > 0: 
-                        st.metric("Fair Value", f"₹{metrics['intrinsic']}")
+                        st.metric(f"Fair Value ({metrics['val_note']})", f"₹{metrics['intrinsic']}")
                     else: 
                         st.error(f"Cannot calculate Fair Value. Reason: {metrics.get('val_note', 'Data Missing')}")
                 with tab4: st.write(metrics.get('sector', 'No summary.'))
                 with tab5:
                     company_news = get_company_news(ticker)
                     if company_news: [st.markdown(f"**[{n['title']}]({n['link']})**") for n in company_news]
-                verdict = f"Fair Value: {metrics['intrinsic']}. Score: {metrics['total_score']}/10."
+                verdict = f"Fair Value: {metrics['intrinsic']} ({metrics['val_note']}). Score: {metrics['total_score']}/10."
                 pdf = create_pdf(ticker, metrics, pros_list, cons_list, verdict)
                 st.download_button("Download Report", data=pdf, file_name=f"{ticker}_Report.pdf", mime="application/pdf")
             else: 
