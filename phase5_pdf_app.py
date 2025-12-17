@@ -133,7 +133,6 @@ def get_market_pulse():
 def analyze_stock(ticker):
     ticker = str(ticker).strip().upper()
     
-    # Retry Loop
     max_retries = 3
     stock = None
     df = pd.DataFrame()
@@ -156,7 +155,6 @@ def analyze_stock(ticker):
     try:
         current_price = df["Close"].iloc[-1]
         
-        # Techs
         try: ema_200 = EMAIndicator(close=df["Close"], window=200).ema_indicator().iloc[-1]
         except: ema_200 = current_price
         
@@ -167,7 +165,6 @@ def analyze_stock(ticker):
         bb = BollingerBands(close=df["Close"], window=20)
         df['BB_High'] = bb.bollinger_hband(); df['BB_Low'] = bb.bollinger_lband()
 
-        # --- SMART DATA EXTRACTION ---
         def get_val(keys):
             for k in keys:
                 if k in info and info[k] is not None:
@@ -187,12 +184,12 @@ def analyze_stock(ticker):
         debt = get_val(['debtToEquity'])
         roe = get_val(['returnOnEquity'])
         peg = get_val(['pegRatio'])
+        beta = get_val(['beta'])
         
         # Extended Financials with Fallback
         revenue = get_val(['totalRevenue'])
         net_income = get_val(['netIncomeToCommon'])
         
-        # FALLBACK: If Info dict fails, check the Raw Financials DataFrame
         if revenue == 0 or net_income == 0:
             try:
                 fins = stock.financials
@@ -204,7 +201,6 @@ def analyze_stock(ticker):
         op_margin = get_val(['operatingMargins'])
         roa = get_val(['returnOnAssets'])
 
-        # --- VALUATION WATERFALL ---
         intrinsic_value = 0
         valuation_note = ""
         
@@ -221,7 +217,6 @@ def analyze_stock(ticker):
                 intrinsic_value = current_price 
                 valuation_note = "Market Price"
 
-        # Scores
         t_score = sum([current_price > ema_200, 40 < rsi < 70, stoch < 80, df['MACD'].iloc[-1] > df['MACD_Signal'].iloc[-1]])
         f_score = sum([0 < pe < 40, margins > 0.10, debt < 100, roe > 0.15])
 
@@ -229,7 +224,7 @@ def analyze_stock(ticker):
             "price": round(current_price, 2),
             "tech_score": t_score, "fund_score": f_score, "total_score": t_score + f_score,
             "rsi": round(rsi, 2), "pe": round(pe, 2), "margins": round(margins*100, 2),
-            "roe": round(roe*100, 2), "debt": round(debt, 2), "peg": peg,
+            "roe": round(roe*100, 2), "debt": round(debt, 2), "peg": peg, "beta": beta,
             "trend": "UP 🟢" if current_price > ema_200 else "DOWN 🔴",
             "intrinsic": round(intrinsic_value, 2),
             "val_note": valuation_note,
@@ -240,7 +235,7 @@ def analyze_stock(ticker):
     except Exception as e: 
         return None, None, f"⚠️ Analysis Error: {str(e)}"
 
-# --- 7. HELPER FUNCTIONS ---
+# --- 7. HELPER FUNCTIONS (SWOT ENGINE) ---
 def generate_key_factors(m):
     factors = []
     if m['pe'] < 20 and m['pe'] > 0: factors.append("🟢 **Attractive Valuation:** P/E Ratio is low.")
@@ -253,14 +248,40 @@ def generate_key_factors(m):
     return factors
 
 def generate_swot(m):
-    pros, cons = [], []
-    if m['pe'] > 0 and m['pe'] < 25: pros.append(f"Valuation is attractive (P/E {m['pe']}).")
-    elif m['pe'] > 50: cons.append(f"Stock is expensive (High P/E {m['pe']}).")
-    if m['margins'] > 15: pros.append(f"High Profit Margins ({m['margins']}%).")
-    if m['debt'] < 50: pros.append("Company has low debt levels.")
-    if m['rsi'] < 30: pros.append("Technically Oversold.")
-    if m['intrinsic'] > 0 and m['price'] < m['intrinsic']: pros.append(f"Below Fair Value ({m['val_note']}).")
-    return pros, cons
+    pros = []
+    cons = []
+    
+    # --- STRENGTHS (Ensure at least 3) ---
+    if m['pe'] > 0 and m['pe'] < 25: pros.append(f"✅ **Attractive Valuation:** P/E of {m['pe']} is reasonable.")
+    if m['margins'] > 10: pros.append(f"✅ **High Profitability:** Net margins of {m['margins']}% are healthy.")
+    if m['roe'] > 15: pros.append(f"✅ **Efficient Management:** Return on Equity is strong at {m['roe']}%.")
+    if m['debt'] < 50: pros.append("✅ **Low Debt:** Company has a safe Debt-to-Equity ratio.")
+    if m['intrinsic'] > m['price']: pros.append(f"✅ **Undervalued:** Trading below fair value ({m['val_note']}).")
+    if m['trend'] == "UP 🟢": pros.append("✅ **Uptrend:** Stock is trading above its 200-Day Moving Average.")
+    if m['peg'] > 0 and m['peg'] < 1: pros.append("✅ **Growth at Good Price:** PEG Ratio is under 1.0.")
+    
+    # Fallback Strengths (if list is short)
+    if len(pros) < 3:
+        if m['beta'] < 1: pros.append("✅ **Low Volatility:** Stock is less volatile than the market.")
+        if m['rsi'] < 40: pros.append("✅ **Oversold Zone:** RSI indicates potential for a bounce.")
+        if m['revenue'] > 0: pros.append("✅ **Revenue Generating:** Company has established revenue streams.")
+
+    # --- WEAKNESSES (Ensure at least 3) ---
+    if m['pe'] > 50: cons.append(f"❌ **Expensive:** P/E of {m['pe']} is quite high.")
+    if m['margins'] < 5: cons.append(f"❌ **Thin Margins:** Net margins are low ({m['margins']}%) or negative.")
+    if m['roe'] < 10: cons.append(f"❌ **Low Efficiency:** ROE of {m['roe']}% is below par.")
+    if m['debt'] > 100: cons.append(f"❌ **High Debt:** Debt-to-Equity ratio is high ({m['debt']}%).")
+    if m['intrinsic'] < m['price']: cons.append("❌ **Overvalued:** Trading above calculated fair value.")
+    if m['trend'] == "DOWN 🔴": cons.append("❌ **Downtrend:** Stock is trading below its 200-Day Moving Average.")
+    if m['peg'] > 2: cons.append("❌ **Pricey Growth:** PEG Ratio indicates growth is expensive.")
+    
+    # Fallback Weaknesses (if list is short)
+    if len(cons) < 3:
+        if m['beta'] > 1.5: cons.append("❌ **High Volatility:** Stock is significantly more volatile than the market.")
+        if m['rsi'] > 70: cons.append("❌ **Overbought:** RSI indicates stock might correct soon.")
+        if m['val_note'] == "Market Price": cons.append("❌ **Lack of Fundamental Data:** Valuation is uncertain due to missing data.")
+
+    return pros[:5], cons[:5] # Return top 5 of each
 
 def plot_chart(df, ticker):
     fig = go.Figure()
@@ -478,7 +499,7 @@ elif mode == "Deep Dive Valuation":
                 c3.metric("Tech Strength", f"{metrics['tech_score']}/5")
                 c4.metric("Fund Health", f"{metrics['fund_score']}/5")
                 
-                tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📈 Forecast", "🔑 Key Factors", "✅ SWOC", "🎩 Valuation", "🏢 Financials", "📰 News & Events"])
+                tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📈 Forecast", "🔑 Key Factors", "✅ SWOT", "🎩 Valuation", "🏢 Financials", "📰 News & Events"])
                 
                 with tab1: st.plotly_chart(plot_chart(history, ticker), use_container_width=True)
                 
@@ -486,9 +507,12 @@ elif mode == "Deep Dive Valuation":
                     st.subheader("Drivers of Stock Value")
                     for factor in key_factors: st.markdown(factor)
                 
-                with tab3:
-                    st.success("✅ STRENGTHS"); [st.write(p) for p in pros_list]
-                    st.error("❌ WEAKNESSES"); [st.write(c) for c in cons_list]
+                with tab3: # RENAMED SWOC -> SWOT
+                    st.success("✅ STRENGTHS")
+                    for p in pros_list: st.markdown(p)
+                    
+                    st.error("❌ WEAKNESSES")
+                    for c in cons_list: st.markdown(c)
                 
                 with tab4:
                     if metrics['intrinsic'] > 0: 
