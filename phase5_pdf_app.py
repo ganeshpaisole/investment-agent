@@ -196,17 +196,17 @@ def analyze_stock(ticker):
         
         if eps > 0 and book_value > 0:
             intrinsic_value = math.sqrt(22.5 * eps * book_value)
-            valuation_note = "Graham Number (Value)"
+            valuation_note = "Graham Number"
             
         # 2. Fallback: Analyst Target (Growth/Loss-Making Stocks)
         if intrinsic_value == 0:
             target = get_val(['targetMeanPrice', 'targetMedianPrice'])
             if target > 0:
                 intrinsic_value = target
-                valuation_note = "Analyst Price Target"
+                valuation_note = "Analyst Target"
             else:
                 intrinsic_value = current_price # Neutral fallback
-                valuation_note = "Market Price (Data Insufficient)"
+                valuation_note = "Market Price"
 
         # Scores
         t_score = sum([current_price > ema_200, 40 < rsi < 70, stoch < 80, df['MACD'].iloc[-1] > df['MACD_Signal'].iloc[-1]])
@@ -445,10 +445,14 @@ elif mode == "Deep Dive Valuation":
             metrics, history, info_msg = analyze_stock(ticker)
             if metrics:
                 pros_list, cons_list = generate_swot(metrics)
-                c1, c2, c3 = st.columns(3)
+                
+                # --- NEW TOP ROW: Price is now visible ---
+                c1, c2, c3, c4 = st.columns(4)
                 c1.metric("Overall Score", f"{metrics['total_score']}/10")
-                c2.metric("Tech Strength", f"{metrics['tech_score']}/5")
-                c3.metric("Fund Health", f"{metrics['fund_score']}/5")
+                c2.metric("Current Price", f"₹{metrics['price']}") # <--- Added Price Here
+                c3.metric("Tech Strength", f"{metrics['tech_score']}/5")
+                c4.metric("Fund Health", f"{metrics['fund_score']}/5")
+                
                 tab1, tab2, tab3, tab4, tab5 = st.tabs(["📈 Forecast", "✅ SWOC", "🎩 Valuation", "🏢 Financials", "📰 News & Events"])
                 with tab1: st.plotly_chart(plot_chart(history, ticker), use_container_width=True)
                 with tab2: 
@@ -456,14 +460,20 @@ elif mode == "Deep Dive Valuation":
                     st.error("❌ WEAKNESSES"); [st.write(c) for c in cons_list]
                 with tab3:
                     if metrics['intrinsic'] > 0: 
-                        st.metric(f"Fair Value ({metrics['val_note']})", f"₹{metrics['intrinsic']}")
+                        # --- NEW VALUATION DISPLAY: Shows Upside/Downside Delta ---
+                        delta_val = round(((metrics['intrinsic'] - metrics['price']) / metrics['price']) * 100, 1)
+                        st.metric(
+                            label=f"Fair Value ({metrics['val_note']})", 
+                            value=f"₹{metrics['intrinsic']}", 
+                            delta=f"{delta_val}% {'Upside' if delta_val > 0 else 'Downside'}"
+                        )
                     else: 
                         st.error(f"Cannot calculate Fair Value. Reason: {metrics.get('val_note', 'Data Missing')}")
                 with tab4: st.write(metrics.get('sector', 'No summary.'))
                 with tab5:
                     company_news = get_company_news(ticker)
                     if company_news: [st.markdown(f"**[{n['title']}]({n['link']})**") for n in company_news]
-                verdict = f"Fair Value: {metrics['intrinsic']} ({metrics['val_note']}). Score: {metrics['total_score']}/10."
+                verdict = f"Fair Value: {metrics['intrinsic']}. Score: {metrics['total_score']}/10."
                 pdf = create_pdf(ticker, metrics, pros_list, cons_list, verdict)
                 st.download_button("Download Report", data=pdf, file_name=f"{ticker}_Report.pdf", mime="application/pdf")
             else: 
