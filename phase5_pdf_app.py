@@ -137,18 +137,40 @@ def get_market_pulse():
         }
     except: return None
 
-# --- 6. CORE ANALYTICS ---
+# --- 6. CORE ANALYTICS (ROBUST STEALTH MODE) ---
 @st.cache_data(ttl=3600)
 def analyze_stock(ticker):
+    # 1. Setup a "Fake Browser" Session to bypass Yahoo Blocks
+    session = requests.Session()
+    session.headers.update({
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    })
+
     try:
-        stock = yf.Ticker(ticker)
+        # 2. Fetch History with the Session
+        stock = yf.Ticker(ticker, session=session)
         df = stock.history(period="1y")
-        if df.empty: return None, None, None
+        
+        # 3. Fallback: If 1y fails, try 1mo (Some stocks are new/glitched)
+        if df.empty:
+            df = stock.history(period="1mo")
+        
+        if df.empty: 
+            return None, None, "No data found. Yahoo might be blocking or ticker is wrong."
         
         info = stock.info
-        current_price = df["Close"].iloc[-1]
         
-        ema_200 = EMAIndicator(close=df["Close"], window=200).ema_indicator().iloc[-1]
+        # Safe extraction of current price
+        try:
+            current_price = df["Close"].iloc[-1]
+        except:
+            return None, None, "Data Error: Could not read Close price."
+        
+        # Technicals (Safe Calculation)
+        try:
+            ema_200 = EMAIndicator(close=df["Close"], window=200).ema_indicator().iloc[-1]
+        except: ema_200 = current_price # Fallback for new stocks
+
         rsi = RSIIndicator(close=df["Close"], window=14).rsi().iloc[-1]
         stoch = StochasticOscillator(high=df["High"], low=df["Low"], close=df["Close"]).stoch().iloc[-1]
         macd = MACD(close=df["Close"])
@@ -156,17 +178,21 @@ def analyze_stock(ticker):
         bb = BollingerBands(close=df["Close"], window=20)
         df['BB_High'] = bb.bollinger_hband(); df['BB_Low'] = bb.bollinger_lband()
 
-        eps = info.get('trailingEps', 0) or 0
-        book_value = info.get('bookValue', 0) or 0
-        pe = info.get('trailingPE', 0) or 0
-        margins = info.get('profitMargins', 0) or 0
-        debt = info.get('debtToEquity', 0) or 0
-        roe = info.get('returnOnEquity', 0) or 0
-        peg = info.get('pegRatio', 0) or 0
+        # Fundamentals (Safe Get)
+        def get_safe(key): return info.get(key, 0) or 0
+        
+        eps = get_safe('trailingEps')
+        book_value = get_safe('bookValue')
+        pe = get_safe('trailingPE')
+        margins = get_safe('profitMargins')
+        debt = get_safe('debtToEquity')
+        roe = get_safe('returnOnEquity')
+        peg = get_safe('pegRatio')
         
         intrinsic_value = 0
         if eps > 0 and book_value > 0: intrinsic_value = math.sqrt(22.5 * eps * book_value)
         
+        # Scoring Logic
         t_score = sum([current_price > ema_200, 40 < rsi < 70, stoch < 80, df['MACD'].iloc[-1] > df['MACD_Signal'].iloc[-1]])
         f_score = sum([0 < pe < 40, margins > 0.10, debt < 100, roe > 0.15])
 
