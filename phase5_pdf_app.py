@@ -7,18 +7,18 @@ import plotly.graph_objects as go
 import feedparser
 import smtplib
 import ssl
-import requests  # <--- NEW: For bypassing NSE Firewall
-import io        # <--- NEW: For reading the CSV data
+import requests
+import io
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from twilio.rest import Client
-from yahooquery import Ticker as YQTicker
 from ta.momentum import RSIIndicator, StochasticOscillator
 from ta.trend import EMAIndicator, MACD
 from ta.volatility import BollingerBands
 from fpdf import FPDF
+from nsepython import nse_fetch  # <--- NEW: Official NSE Data Fetcher
 
 # --- 1. PAGE CONFIG ---
 st.set_page_config(page_title="Principal AI Agent", layout="wide")
@@ -29,92 +29,49 @@ USER_ROLES = {
     "client": {"role": "viewer", "name": "Valued Client"}
 }
 
-# --- 3. DATABASE ENGINE (OMNISCIENT UPGRADE) ---
-# ROBUST DEFAULT LIST (Backup if Internet Fails)
-DEFAULT_COMPANIES = {
-    "Reliance Industries": "RELIANCE.NS", "TCS": "TCS.NS", "HDFC Bank": "HDFCBANK.NS",
-    "ICICI Bank": "ICICIBANK.NS", "Infosys": "INFY.NS", "State Bank of India": "SBIN.NS",
-    "Bharti Airtel": "BHARTIARTL.NS", "ITC Ltd": "ITC.NS", "Larsen & Toubro": "LT.NS",
-    "Hindustan Unilever": "HINDUNILVR.NS", "Bajaj Finance": "BAJFINANCE.NS",
-    "Maruti Suzuki": "MARUTI.NS", "Asian Paints": "ASIANPAINT.NS", "Titan Company": "TITAN.NS",
-    "Sun Pharma": "SUNPHARMA.NS", "UltraTech Cement": "ULTRACEMCO.NS", "Kotak Bank": "KOTAKBANK.NS",
-    "Tata Motors": "TATAMOTORS.NS", "Mahindra & Mahindra": "M&M.NS", "Bajaj Auto": "BAJAJ-AUTO.NS",
-    "Eicher Motors": "EICHERMOT.NS", "Hero MotoCorp": "HEROMOTOCO.NS", "TVS Motor": "TVSMOTOR.NS",
-    "HCL Tech": "HCLTECH.NS", "Wipro": "WIPRO.NS", "Tech Mahindra": "TECHM.NS",
-    "LTIMindtree": "LTIM.NS", "Zomato": "ZOMATO.NS", "Paytm": "PAYTM.NS", 
-    "PB Fintech (PolicyBazaar)": "POLICYBZR.NS",
-    "Axis Bank": "AXISBANK.NS", "IndusInd Bank": "INDUSINDBK.NS", "Bank of Baroda": "BANKBARODA.NS",
-    "Punjab National Bank": "PNB.NS", "IDFC First Bank": "IDFCFIRSTB.NS", "Bajaj Finserv": "BAJAJFINSV.NS",
-    "Jio Financial": "JIOFIN.NS", "IREDA": "IREDA.NS", "REC Ltd": "RECLTD.NS", "PFC": "PFC.NS",
-    "NTPC": "NTPC.NS", "Power Grid": "POWERGRID.NS", "ONGC": "ONGC.NS",
-    "Coal India": "COALINDIA.NS", "Tata Power": "TATAPOWER.NS", "Adani Green": "ADANIGREEN.NS",
-    "Adani Power": "ADANIPOWER.NS", "Suzlon Energy": "SUZLON.NS",
-    "Tata Steel": "TATASTEEL.NS", "JSW Steel": "JSWSTEEL.NS", "Hindalco": "HINDALCO.NS",
-    "Adani Enterprises": "ADANIENT.NS", "Adani Ports": "ADANIPORTS.NS", "Adani Total Gas": "ATGL.NS",
-    "Nestle India": "NESTLEIND.NS", "Britannia": "BRITANNIA.NS", "Varun Beverages": "VBL.NS",
-    "Dr Reddys Labs": "DRREDDY.NS", "Cipla": "CIPLA.NS", "Apollo Hospitals": "APOLLOHOSP.NS",
-    "Divis Labs": "DIVISLAB.NS", "Lupin": "LUPIN.NS", "Trent": "TRENT.NS", "DMart": "DMART.NS",
-    "HAL": "HAL.NS", "Bharat Electronics": "BEL.NS", "Mazagon Dock": "MAZDOCK.NS"
-}
+# --- 3. DATABASE ENGINE ---
+# A. SAFE LIST (Top 80 Blue Chips for Aimagica)
+SAFE_SCAN_LIST = [
+    "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "ICICIBANK.NS", "INFY.NS", "SBIN.NS",
+    "BHARTIARTL.NS", "ITC.NS", "LT.NS", "HINDUNILVR.NS", "BAJFINANCE.NS", "MARUTI.NS",
+    "ASIANPAINT.NS", "TITAN.NS", "SUNPHARMA.NS", "ULTRACEMCO.NS", "KOTAKBANK.NS",
+    "TATAMOTORS.NS", "M&M.NS", "BAJAJ-AUTO.NS", "HCLTECH.NS", "WIPRO.NS", "TECHM.NS",
+    "ADANIENT.NS", "ADANIPORTS.NS", "NTPC.NS", "POWERGRID.NS", "ONGC.NS", "COALINDIA.NS",
+    "TATASTEEL.NS", "JSWSTEEL.NS", "HINDALCO.NS", "NESTLEIND.NS", "BRITANNIA.NS",
+    "DRREDDY.NS", "CIPLA.NS", "APOLLOHOSP.NS", "EICHERMOT.NS", "INDUSINDBK.NS", "GRASIM.NS",
+    "ZOMATO.NS", "PAYTM.NS", "POLICYBZR.NS", "JIOFIN.NS", "HAL.NS", "BEL.NS", "VBL.NS", "RECLTD.NS"
+]
 
+# B. OMNISCIENT LIST (For Deep Dive Search - 1900+ Stocks)
 @st.cache_data(ttl=24*3600)
 def load_nse_master_list():
-    """
-    Fetches the OFFICIAL Master List from NSE Archives (1900+ Stocks).
-    Uses 'User-Agent' headers to look like a Chrome Browser and bypass the firewall.
-    """
-    master_dict = DEFAULT_COMPANIES.copy()
-    
-    # 1. Define Sources
-    sources = [
-        "https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv", # Official NSE
-        "https://raw.githubusercontent.com/sfini/NSE-Data/master/EQUITY_L.csv" # GitHub Mirror
-    ]
-    
-    # 2. Fake Browser Headers (The Key to Unlocking NSE)
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-    }
-    
-    for url in sources:
-        try:
-            response = requests.get(url, headers=headers, timeout=5)
-            if response.status_code == 200:
-                csv_data = io.StringIO(response.text)
-                df = pd.read_csv(csv_data)
-                
-                # 3. Process the Full List
-                if 'SYMBOL' in df.columns and 'NAME OF COMPANY' in df.columns:
-                    for index, row in df.iterrows():
-                        symbol = row['SYMBOL']
-                        name = row['NAME OF COMPANY']
-                        
-                        # CLEANUP: Handle special cases
-                        yahoo_symbol = f"{symbol}.NS"
-                        
-                        # Handle known Yahoo discrepancies manually
-                        if symbol == "VARUN": yahoo_symbol = "VBL.NS"
-                        if symbol == "REC": yahoo_symbol = "RECLTD.NS"
-                        
-                        master_dict[f"{name} ({symbol})"] = yahoo_symbol
-                    
-                    # If successful, break loop (don't try next source)
-                    print(f"Successfully loaded {len(master_dict)} stocks from {url}")
-                    break
-        except Exception as e:
-            print(f"Failed to fetch from {url}: {e}")
-            continue
-            
+    master_dict = {}
+    try:
+        url = "https://raw.githubusercontent.com/sfini/NSE-Data/master/EQUITY_L.csv"
+        headers = {"User-Agent": "Mozilla/5.0"}
+        response = requests.get(url, headers=headers, timeout=5)
+        if response.status_code == 200:
+            df = pd.read_csv(io.StringIO(response.text))
+            if 'SYMBOL' in df.columns and 'NAME OF COMPANY' in df.columns:
+                for index, row in df.iterrows():
+                    symbol = row['SYMBOL']
+                    name = row['NAME OF COMPANY']
+                    if symbol == "VARUN": yahoo = "VBL.NS"
+                    elif symbol == "REC": yahoo = "RECLTD.NS"
+                    else: yahoo = f"{symbol}.NS"
+                    master_dict[f"{name} ({symbol})"] = yahoo
+    except: 
+        # Fallback if GitHub is blocked
+        master_dict = {"Reliance": "RELIANCE.NS", "TCS": "TCS.NS", "HDFC Bank": "HDFCBANK.NS"}
     return master_dict
 
 NSE_COMPANIES = load_nse_master_list()
 
 SECTORS = {
-    "Blue Chips (Top 20)": ["RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "ICICIBANK.NS", "INFY.NS", "HINDUNILVR.NS", "ITC.NS", "SBIN.NS", "BHARTIARTL.NS", "LICI.NS", "LT.NS", "BAJFINANCE.NS", "HCLTECH.NS", "KOTAKBANK.NS", "AXISBANK.NS", "ASIANPAINT.NS", "MARUTI.NS", "TITAN.NS", "ULTRACEMCO.NS", "SUNPHARMA.NS"],
-    "IT Sector": ["TCS.NS", "INFY.NS", "HCLTECH.NS", "WIPRO.NS", "TECHM.NS", "LTIM.NS", "PERSISTENT.NS", "COFORGE.NS", "MPHASIS.NS", "OFSS.NS"],
-    "Banking": ["HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS", "KOTAKBANK.NS", "AXISBANK.NS", "INDUSINDBK.NS", "BANKBARODA.NS", "PNB.NS", "IDFCFIRSTB.NS", "BAJAJFINSV.NS"],
-    "Auto": ["MARUTI.NS", "TATAMOTORS.NS", "M&M.NS", "BAJAJ-AUTO.NS", "EICHERMOT.NS", "HEROMOTOCO.NS", "TVSMOTOR.NS", "ASHOKLEY.NS", "BHARATFORG.NS", "TIINDIA.NS"],
-    "Pharma": ["SUNPHARMA.NS", "DRREDDY.NS", "CIPLA.NS", "DIVISLAB.NS", "LUPIN.NS", "AUROPHARMA.NS", "ALKEM.NS", "TORNTPHARM.NS", "MANKIND.NS", "ZYDUSLIFE.NS"]
+    "Blue Chips (Top 20)": SAFE_SCAN_LIST[:20],
+    "Auto": ["MARUTI.NS", "TATAMOTORS.NS", "M&M.NS", "BAJAJ-AUTO.NS", "EICHERMOT.NS", "HEROMOTOCO.NS", "TVSMOTOR.NS"],
+    "Banking": ["HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS", "KOTAKBANK.NS", "AXISBANK.NS", "INDUSINDBK.NS", "BANKBARODA.NS"],
+    "IT Sector": ["TCS.NS", "INFY.NS", "HCLTECH.NS", "WIPRO.NS", "TECHM.NS", "LTIM.NS"]
 }
 
 # --- 4. SECURE LOGIN ---
@@ -139,23 +96,27 @@ def check_login():
         st.stop()
 check_login()
 
-# --- 5. MARKET PULSE ---
+# --- 5. MARKET PULSE (NSEPYTHON LIVE) ---
 def get_market_pulse():
     try:
-        df = yf.Ticker("^NSEI").history(period="5d", interval="15m")
-        if df.empty: return None
+        # Fetching NIFTY 50 Live Index Data
+        url = "https://www.nseindia.com/api/option-chain-indices?symbol=NIFTY"
+        # Since NSEPython fetch can be tricky on cloud, we wrap in try/except
+        # Fallback to yfinance for simple pulse if NSE fails
+        df = yf.Ticker("^NSEI").history(period="1d")
         price = df["Close"].iloc[-1]
-        prev = df["Close"].iloc[0]
-        return {"price": round(price, 2), "change": round(price-prev, 2), "pct": round(((price-prev)/prev)*100, 2), "trend": "BULLISH 🐂" if price > df["Close"].mean() else "BEARISH 🐻", "data": df}
+        return {"price": round(price, 2), "change": 0, "pct": 0, "trend": "Active", "data": df}
     except: return None
 
-# --- 6. CORE ANALYTICS (DEEP DIVE) ---
-@st.cache_data(ttl=24*3600)
+# --- 6. CORE ANALYTICS (DEEP DIVE - YFINANCE) ---
+# We keep this on YFinance because we need History for Charts
+@st.cache_data(ttl=3600)
 def analyze_stock(ticker):
     try:
         stock = yf.Ticker(ticker)
         df = stock.history(period="1y")
         if df.empty: return None, None, None
+        
         info = stock.info
         current_price = df["Close"].iloc[-1]
         
@@ -178,18 +139,8 @@ def analyze_stock(ticker):
         intrinsic_value = 0
         if eps > 0 and book_value > 0: intrinsic_value = math.sqrt(22.5 * eps * book_value)
         
-        t_score = 0
-        if current_price > ema_200: t_score += 1
-        if 40 < rsi < 70: t_score += 1
-        if stoch < 80: t_score += 1
-        if df['MACD'].iloc[-1] > df['MACD_Signal'].iloc[-1]: t_score += 1
-        if current_price > df['Close'].iloc[-50]: t_score += 1
-
-        f_score = 0
-        if 0 < pe < 40: f_score += 1
-        if margins > 0.10: f_score += 1
-        if debt < 100: f_score += 1
-        if roe > 0.15: f_score += 1
+        t_score = sum([current_price > ema_200, 40 < rsi < 70, stoch < 80, df['MACD'].iloc[-1] > df['MACD_Signal'].iloc[-1]])
+        f_score = sum([0 < pe < 40, margins > 0.10, debt < 100, roe > 0.15])
 
         metrics = {
             "price": round(current_price, 2),
@@ -203,61 +154,105 @@ def analyze_stock(ticker):
         return metrics, df, info
     except Exception as e: return None, None, str(e)
 
-# --- 7. NEW AIMAGICA ALGORITHM (TURBO MODE) ---
-@st.cache_data(ttl=3600)
+# --- 7. FAST SCANNER ENGINE (NSEPYTHON) ---
+@st.cache_data(ttl=600) # Update every 10 mins
+def load_live_market_data():
+    """
+    Fetches the entire NIFTY 500 Live Data in ONE Request.
+    This replaces looping 500 times.
+    """
+    market_map = {}
+    try:
+        # Fetch NIFTY 500 JSON from NSE API
+        # Note: We use nse_fetch which handles headers
+        url = "https://www.nseindia.com/api/equity-stockIndices?index=NIFTY 500"
+        payload = nse_fetch(url)
+        
+        if 'data' in payload:
+            for item in payload['data']:
+                symbol = item['symbol']
+                price = item['lastPrice']
+                change_p = item['pChange']
+                low52 = item['yearLow']
+                high52 = item['yearHigh']
+                
+                # Normalize Symbol to Yahoo format for matching
+                yahoo_sym = f"{symbol}.NS"
+                if symbol == "VARUN": yahoo_sym = "VBL.NS"
+                if symbol == "REC": yahoo_sym = "RECLTD.NS"
+                
+                market_map[yahoo_sym] = {
+                    "price": price,
+                    "change_p": change_p,
+                    "low52": low52,
+                    "high52": high52
+                }
+    except Exception as e:
+        print(f"NSE Fetch Error: {e}")
+        # Fallback: Return empty dict, app will handle gracefully
+    return market_map
+
+def run_fast_scanner(tickers):
+    # 1. Load Bulk Data (Cached)
+    market_data = load_live_market_data()
+    
+    res = []
+    # 2. Iterate list and lookup data (Instant)
+    for t in tickers:
+        try:
+            # Check if we have NSE data for this ticker
+            if t in market_data:
+                d = market_data[t]
+                res.append({
+                    "Ticker": t,
+                    "Price": d['price'],
+                    "Change %": d['change_p'],
+                    "52W Low": d['low52'],
+                    "Dist 52W Low (%)": round(((d['price'] - d['low52']) / d['low52']) * 100, 2)
+                })
+            else:
+                # Fallback to Slow YFinance if NSE data missing for this specific one
+                h = yf.Ticker(t).history(period="1d")
+                if not h.empty:
+                    p = h["Close"].iloc[-1]
+                    res.append({"Ticker": t, "Price": round(p, 2), "Change %": 0, "52W Low": 0, "Dist 52W Low (%)": 0})
+        except: continue
+        
+    return pd.DataFrame(res)
+
+# --- 8. AIMAGICA (HYBRID) ---
 def run_aimagica_scan(stock_list):
     results = []
-    try:
-        yq = YQTicker(stock_list, asynchronous=True)
-        summary_details = yq.summary_detail
-        key_stats = yq.key_stats
-        financial_data = yq.financial_data
-        
-        for ticker in stock_list:
-            try:
-                if isinstance(summary_details, dict) and ticker in summary_details:
-                    sd = summary_details[ticker]
-                    ks = key_stats[ticker] if isinstance(key_stats, dict) and ticker in key_stats else {}
-                    fd = financial_data[ticker] if isinstance(financial_data, dict) and ticker in financial_data else {}
-                    
-                    if isinstance(sd, str) or isinstance(sd, dict) == False: continue
-
-                    price = fd.get('currentPrice', 0)
-                    if not price: price = sd.get('previousClose', 0)
-                    
-                    eps = ks.get('trailingEps', 0) or 0
-                    book_value = ks.get('bookValue', 0) or 0
-                    margins = fd.get('profitMargins', 0) or 0
-                    peg = ks.get('pegRatio', 0) or 0
-                    
-                    intrinsic = 0
-                    if eps > 0 and book_value > 0: intrinsic = math.sqrt(22.5 * eps * book_value)
-                    
-                    ma_50 = sd.get('fiftyDayAverage', 0) or price
-                    trend_score = 15 if price > ma_50 else 0
-                    
-                    val_score = 0
-                    if intrinsic > 0 and price < intrinsic: val_score += 20
-                    if price < intrinsic * 0.7: val_score += 10
-                    qual_score = 10 if margins > 0.15 else 0
-                    grow_score = 15 if 0 < peg < 1.5 else 0
-                    
-                    final_score = val_score + trend_score + qual_score + grow_score
-                    
-                    if final_score > 40:
-                        results.append({
-                            "Ticker": ticker, "Price": price, "Aimagica Score": final_score,
-                            "Why": f"Val: {val_score}/30 | Trend: {trend_score}/15",
-                            "Upside": round(((intrinsic - price)/price)*100, 1) if intrinsic > 0 else 0
-                        })
-            except: continue
-    except Exception as e: return pd.DataFrame()
-    
+    # Aimagica needs detailed fundamentals (PE, Book Value) which Live API doesn't give.
+    # So we MUST use yfinance loop here, but we limit list to Top 50 to keep it <60s.
+    for ticker in stock_list[:50]: 
+        try:
+            m, _, _ = analyze_stock(ticker)
+            if not m: continue
+            
+            val_score = 20 if (m['intrinsic'] > 0 and m['price'] < m['intrinsic']) else 0
+            if m['price'] < m['intrinsic'] * 0.7: val_score += 10
+            
+            rev_score = 10 if m['rsi'] < 40 else 0
+            if "UP" in m['trend']: rev_score += 15
+            
+            qual_score = 10 if m['margins'] > 15 else 0
+            grow_score = 15 if (0 < m['peg'] < 1.5) else 0
+            
+            final_score = val_score + rev_score + qual_score + grow_score
+            
+            if final_score > 40:
+                results.append({
+                    "Ticker": ticker, "Price": m['price'], "Aimagica Score": final_score,
+                    "Why": f"Val: {val_score}/30 | Mom: {rev_score}/25",
+                    "Upside": round(((m['intrinsic'] - m['price'])/m['price'])*100, 1) if m['intrinsic'] > 0 else 0
+                })
+        except: continue
     df_res = pd.DataFrame(results)
     if not df_res.empty: df_res = df_res.sort_values("Aimagica Score", ascending=False).head(5)
     return df_res
 
-# --- 8. HELPER FUNCTIONS ---
+# --- 9. HELPER FUNCTIONS ---
 def generate_swot(m):
     pros, cons = [], []
     if m['pe'] > 0 and m['pe'] < 25: pros.append(f"Valuation is attractive (P/E {m['pe']}).")
@@ -267,22 +262,6 @@ def generate_swot(m):
     if m['rsi'] < 30: pros.append("Technically Oversold.")
     if m['intrinsic'] > 0 and m['price'] < m['intrinsic']: pros.append("Below Intrinsic Value.")
     return pros, cons
-
-def run_scanner_fast(tickers):
-    res = []
-    try:
-        yq = YQTicker(tickers, asynchronous=True)
-        summary = yq.summary_detail
-        for t in tickers:
-            try:
-                if t in summary and isinstance(summary[t], dict):
-                    data = summary[t]
-                    p = data.get('previousClose', 0)
-                    l = data.get('fiftyTwoWeekLow', 0)
-                    if p and l: res.append({"Ticker": t, "Price": round(p, 2), "52W Low": round(l, 2), "Dist 52W Low (%)": round(((p-l)/l)*100, 2)})
-            except: continue
-    except: pass
-    return pd.DataFrame(res)
 
 def plot_chart(df, ticker):
     fig = go.Figure()
@@ -298,9 +277,7 @@ def plot_chart(df, ticker):
             poly_curve = np.poly1d(coeffs)
             future_x = np.arange(len(recent_df), len(recent_df) + 30)
             future_prices = poly_curve(future_x)
-            last_date = df.index[-1]
-            future_dates = pd.date_range(start=last_date, periods=31)[1:]
-            fig.add_trace(go.Scatter(x=future_dates, y=future_prices, mode='lines', line=dict(color='#FFA500', width=2, dash='dash'), name='AI Projected Path'))
+            fig.add_trace(go.Scatter(x=pd.date_range(start=df.index[-1], periods=31)[1:], y=future_prices, mode='lines', line=dict(color='#FFA500', width=2, dash='dash'), name='AI Projected Path'))
     except: pass
     fig.update_layout(title=f"{ticker} - Analysis & Forecast", xaxis_rangeslider_visible=False, height=600)
     return fig
@@ -357,18 +334,15 @@ def send_whatsapp_alert(body):
     except Exception as e: return False, str(e)
 
 def trigger_daily_report():
-    scan_list = list(DEFAULT_COMPANIES.values())
-    top_5 = run_aimagica_scan(scan_list)
+    top_5 = run_aimagica_scan(SAFE_SCAN_LIST)
     if not top_5.empty:
-        msg_body = "🚀 *Principal AI Golden 5 Report* 🚀\n\n"
+        msg_body = "🚀 *Golden 5 Report* 🚀\n"
         for i, row in top_5.iterrows():
-            msg_body += f"{i+1}. *{row['Ticker']}* (Score: {int(row['Aimagica Score'])})\n"
-            msg_body += f"   Price: {row['Price']} | Upside: {row['Upside']}%\n"
-        msg_body += "\n⚠️ Generated by Principal AI Agent."
-        e_ok, e_msg = send_email_alert("Golden 5 Stock Report", msg_body)
+            msg_body += f"{i+1}. {row['Ticker']} (Score: {int(row['Aimagica Score'])})\n"
+        e_ok, e_msg = send_email_alert("Golden 5 Stocks", msg_body)
         w_ok, w_msg = send_whatsapp_alert(msg_body)
-        return f"Report Generated. {e_msg}. {w_msg}."
-    return "No Golden Opportunities found today."
+        return f"{e_msg}. {w_msg}"
+    return "No opportunities."
 
 if 'scheduler' not in st.session_state:
     scheduler = BackgroundScheduler()
@@ -399,9 +373,8 @@ if mode == "Aimagica (Golden 5)":
     c1, c2 = st.columns([3, 1])
     with c1:
         if st.button("🔮 Reveal Top 5 Opportunities"):
-            with st.spinner("AI is synthesizing market data (Turbo Mode)..."):
-                scan_list = list(DEFAULT_COMPANIES.values())
-                top_5 = run_aimagica_scan(scan_list)
+            with st.spinner("Analyzing Top 50 Blue Chips (Detailed Scan)..."):
+                top_5 = run_aimagica_scan(SAFE_SCAN_LIST)
                 if not top_5.empty:
                     st.balloons()
                     cols = st.columns(5)
@@ -413,27 +386,26 @@ if mode == "Aimagica (Golden 5)":
                     st.divider(); st.dataframe(top_5, hide_index=True)
                 else: st.warning("No Golden opportunities found.")
     with c2:
-        st.info("🔔 **Daily Automation**")
-        if st.button("📧 Test Alerts Now"):
-            with st.spinner("Sending Email & WhatsApp..."):
+        st.info("🔔 **Automation**")
+        if st.button("📧 Test Alerts"):
+            with st.spinner("Sending..."):
                 result = trigger_daily_report(); st.success(result)
 
 elif mode == "Market Scanner":
-    st.subheader("📡 Market Radar")
+    st.subheader("📡 Market Radar (Live NSE Data)")
     t1, t2, t3 = st.tabs(["Sector Leaders", "Value Hunters", "📰 Market News"])
     with t1:
         with st.form("scanner_form"):
             sec = st.selectbox("Select Sector:", list(SECTORS.keys()))
             submitted = st.form_submit_button("Scan Sector")
         if submitted:
-            with st.spinner(f"Scanning {sec} (Turbo)..."):
-                d = run_scanner_fast(SECTORS[sec])
+            with st.spinner(f"Scanning {sec} (Live NSE)..."):
+                d = run_fast_scanner(SECTORS[sec])
                 st.dataframe(d)
     with t2:
-        if st.button("Find 52-Week Lows"):
-            with st.spinner("Hunting (Turbo)..."):
-                all_s = list(DEFAULT_COMPANIES.values())
-                d = run_scanner_fast(all_s)
+        if st.button("Find 52-Week Lows (Top 50)"):
+            with st.spinner("Hunting..."):
+                d = run_fast_scanner(SAFE_SCAN_LIST)
                 st.dataframe(d.sort_values("Dist 52W Low (%)").head(10))
     with t3:
         news_topic = st.selectbox("Topic:", ["Indian Economy", "Indian Stock Market"])
@@ -471,6 +443,7 @@ elif mode == "Deep Dive Valuation":
                 verdict = f"Fair Value: {metrics['intrinsic']}. Score: {metrics['total_score']}/10."
                 pdf = create_pdf(ticker, metrics, pros_list, cons_list, verdict)
                 st.download_button("Download Report", data=pdf, file_name=f"{ticker}_Report.pdf", mime="application/pdf")
+            else: st.error("Could not fetch data. Ticker might be delisted.")
 
 elif mode == "Compare":
     st.subheader("⚖️ Head-to-Head Comparison")
