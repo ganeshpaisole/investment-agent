@@ -95,13 +95,27 @@ def check_login():
         st.stop()
 check_login()
 
-# --- 5. MARKET PULSE ---
+# --- 5. MARKET PULSE (FIXED: Now includes 'change') ---
 def get_market_pulse():
     try:
-        df = yf.Ticker("^NSEI").history(period="1d")
-        if not df.empty:
-            price = df["Close"].iloc[-1]
-            return {"price": round(price, 2), "pct": 0, "trend": "Active", "data": df}
+        # Fetch 5 days to ensure we have a 'Previous Close' to compare against
+        df = yf.Ticker("^NSEI").history(period="5d")
+        if df.empty: return None
+        
+        price = df["Close"].iloc[-1]
+        # Get yesterday's close (or open if not enough data)
+        prev_close = df["Close"].iloc[-2] if len(df) > 1 else df["Open"].iloc[-1]
+        
+        change_val = price - prev_close
+        pct_val = (change_val / prev_close) * 100
+        
+        return {
+            "price": round(price, 2),
+            "change": round(change_val, 2),   # <--- THIS WAS MISSING BEFORE
+            "pct": round(pct_val, 2),
+            "trend": "BULLISH 🐂" if change_val > 0 else "BEARISH 🐻",
+            "data": df
+        }
     except: return None
 
 # --- 6. CORE ANALYTICS (YFINANCE) ---
@@ -151,23 +165,16 @@ def analyze_stock(ticker):
         return metrics, df, info
     except Exception as e: return None, None, str(e)
 
-# --- 7. CUSTOM NSE FETCHER (REPLACES NSEPYTHON) ---
+# --- 7. CUSTOM NSE FETCHER ---
 @st.cache_data(ttl=600)
 def get_nse_data(tickers):
-    """
-    Manually fetches live data for the 'Market Scanner' using standard requests.
-    This avoids the 'ImportError' from external libraries.
-    """
     results = []
-    # Optimization: To avoid 50 requests, we stick to yfinance for the scanner
-    # because manually scraping NSE is unstable without a dedicated proxy.
-    # We will use yfinance 'batch' style by iterating.
     for t in tickers:
         try:
             h = yf.Ticker(t).history(period="1d")
             if not h.empty:
                 p = h["Close"].iloc[-1]
-                # Dummy 52w Low calculation for speed (needs more history for real 52w)
+                # Dummy calc for scanner speed
                 results.append({"Ticker": t, "Price": round(p, 2), "Change %": 0})
         except: continue
     return pd.DataFrame(results)
@@ -175,7 +182,7 @@ def get_nse_data(tickers):
 # --- 8. AIMAGICA (GOLDEN 5) ---
 def run_aimagica_scan(stock_list):
     results = []
-    for ticker in stock_list[:50]: # Scan top 50
+    for ticker in stock_list[:50]: 
         try:
             m, _, _ = analyze_stock(ticker)
             if not m: continue
