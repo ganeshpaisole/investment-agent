@@ -114,22 +114,11 @@ def check_login():
         st.stop()
 check_login()
 
-# --- 5. SESSION FACTORY (THE FIX) ---
-def get_yahoo_session():
-    """Creates a custom browser session to bypass Yahoo blocks."""
-    session = requests.Session()
-    session.headers.update({
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "*/*",
-        "Accept-Encoding": "gzip, deflate, br"
-    })
-    return session
-
-# --- 6. MARKET PULSE ---
+# --- 5. MARKET PULSE (CLEANED) ---
 def get_market_pulse():
     try:
-        session = get_yahoo_session()
-        df = yf.Ticker("^NSEI", session=session).history(period="5d")
+        # Reverted to simple Ticker call without manual session
+        df = yf.Ticker("^NSEI").history(period="5d")
         if df.empty: return None
         price = df["Close"].iloc[-1]
         prev_close = df["Close"].iloc[-2] if len(df) > 1 else df["Open"].iloc[-1]
@@ -138,14 +127,14 @@ def get_market_pulse():
         return {"price": round(price, 2), "change": round(change_val, 2), "pct": round(pct_val, 2), "trend": "BULLISH 🐂" if change_val > 0 else "BEARISH 🐻", "data": df}
     except: return None
 
-# --- 7. CORE ANALYTICS ---
+# --- 6. CORE ANALYTICS (CLEANED) ---
 @st.cache_data(ttl=3600)
 def analyze_stock(ticker):
     ticker = str(ticker).strip().upper()
-    session = get_yahoo_session() # <--- Using Shared Session
-
+    
     try:
-        stock = yf.Ticker(ticker, session=session)
+        # Reverted to simple Ticker call without manual session
+        stock = yf.Ticker(ticker)
         df = stock.history(period="1y")
         
         if df.empty:
@@ -193,25 +182,24 @@ def analyze_stock(ticker):
         }
         return metrics, df, info
     except Exception as e: 
-        return None, None, f"⚠️ CRITICAL ERROR: {str(e)}"
+        return None, None, f"⚠️ ERROR: {str(e)}"
 
-# --- 8. FAST SCANNER (WITH SESSION FIX) ---
+# --- 7. FAST SCANNER (CLEANED) ---
 @st.cache_data(ttl=600)
 def get_nse_data(tickers):
     results = []
-    session = get_yahoo_session() # <--- FIXED: Now using session here too
     
     for t in tickers:
         try:
-            # We use the session here to prevent 404/Delisted errors
-            h = yf.Ticker(t, session=session).history(period="1d")
+            # Reverted to simple Ticker call without manual session
+            h = yf.Ticker(t).history(period="1d")
             if not h.empty:
                 p = h["Close"].iloc[-1]
                 results.append({"Ticker": t, "Price": round(p, 2), "Change %": 0})
         except: continue
     return pd.DataFrame(results)
 
-# --- 9. AIMAGICA ---
+# --- 8. AIMAGICA ---
 def run_aimagica_scan(stock_list):
     results = []
     for ticker in stock_list:
@@ -239,7 +227,7 @@ def run_aimagica_scan(stock_list):
     if not df_res.empty: df_res = df_res.sort_values("Aimagica Score", ascending=False).head(5)
     return df_res
 
-# --- 10. HELPER FUNCTIONS ---
+# --- 9. HELPER FUNCTIONS ---
 def generate_swot(m):
     pros, cons = [], []
     if m['pe'] > 0 and m['pe'] < 25: pros.append(f"Valuation is attractive (P/E {m['pe']}).")
@@ -291,11 +279,11 @@ def get_google_news(query):
 @st.cache_data(ttl=3600)
 def get_company_news(ticker):
     try:
-        session = get_yahoo_session()
-        return [{"title": n['title'], "link": n['link'], "publisher": n.get('publisher', 'Yahoo')} for n in yf.Ticker(ticker, session=session).news[:5]]
+        # Reverted to simple Ticker call without manual session
+        return [{"title": n['title'], "link": n['link'], "publisher": n.get('publisher', 'Yahoo')} for n in yf.Ticker(ticker).news[:5]]
     except: return []
 
-# --- 11. NOTIFICATION ENGINE ---
+# --- 10. NOTIFICATION ENGINE ---
 def send_email_alert(subject, body):
     try:
         sender = st.secrets["notifications"]["email_sender"]
@@ -338,7 +326,7 @@ if 'scheduler' not in st.session_state:
     scheduler.start()
     st.session_state['scheduler'] = scheduler
 
-# --- 12. DASHBOARD UI ---
+# --- 11. DASHBOARD UI ---
 with st.sidebar:
     st.title(f"👤 {st.session_state['user_name']}")
     st.markdown("---")
