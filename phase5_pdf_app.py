@@ -9,6 +9,8 @@ import smtplib
 import ssl
 import requests
 import io
+import time  # <--- NEW: For Smart Waits
+import random # <--- NEW: For Randomized Delays
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
@@ -114,10 +116,9 @@ def check_login():
         st.stop()
 check_login()
 
-# --- 5. MARKET PULSE (CLEANED) ---
+# --- 5. MARKET PULSE ---
 def get_market_pulse():
     try:
-        # Reverted to simple Ticker call without manual session
         df = yf.Ticker("^NSEI").history(period="5d")
         if df.empty: return None
         price = df["Close"].iloc[-1]
@@ -127,22 +128,44 @@ def get_market_pulse():
         return {"price": round(price, 2), "change": round(change_val, 2), "pct": round(pct_val, 2), "trend": "BULLISH 🐂" if change_val > 0 else "BEARISH 🐻", "data": df}
     except: return None
 
-# --- 6. CORE ANALYTICS (CLEANED) ---
+# --- 6. CORE ANALYTICS (SMART RETRY MODE) ---
 @st.cache_data(ttl=3600)
 def analyze_stock(ticker):
     ticker = str(ticker).strip().upper()
     
+    # --- RETRY ENGINE ---
+    # We attempt to fetch data 3 times with increasing delays
+    max_retries = 3
+    stock = None
+    df = pd.DataFrame()
+    info = {}
+    
+    for attempt in range(max_retries):
+        try:
+            stock = yf.Ticker(ticker)
+            df = stock.history(period="1y")
+            
+            # If data found, break loop
+            if not df.empty:
+                info = stock.info
+                break
+                
+            # If empty, wait and retry
+            time.sleep(random.uniform(1.0, 3.0)) 
+            
+        except Exception as e:
+            # If rate limited (429), wait longer
+            if "429" in str(e) or "Too Many Requests" in str(e):
+                time.sleep(2 * (attempt + 1)) # Wait 2s, 4s, 6s...
+            else:
+                time.sleep(1)
+                
+    # --- END RETRY ENGINE ---
+
+    if df.empty:
+        return None, None, f"⚠️ Server Busy (Rate Limited). Please try '{ticker}' again in 10 seconds."
+
     try:
-        # Reverted to simple Ticker call without manual session
-        stock = yf.Ticker(ticker)
-        df = stock.history(period="1y")
-        
-        if df.empty:
-            df = stock.history(period="5d")
-            if df.empty:
-                return None, None, f"⚠️ No data found for '{ticker}'. Yahoo might be blocking IP or ticker is invalid."
-        
-        info = stock.info
         current_price = df["Close"].iloc[-1]
         
         try:
@@ -184,18 +207,18 @@ def analyze_stock(ticker):
     except Exception as e: 
         return None, None, f"⚠️ ERROR: {str(e)}"
 
-# --- 7. FAST SCANNER (CLEANED) ---
+# --- 7. FAST SCANNER ---
 @st.cache_data(ttl=600)
 def get_nse_data(tickers):
     results = []
-    
+    # Small delay to prevent burst rate limits
     for t in tickers:
         try:
-            # Reverted to simple Ticker call without manual session
             h = yf.Ticker(t).history(period="1d")
             if not h.empty:
                 p = h["Close"].iloc[-1]
                 results.append({"Ticker": t, "Price": round(p, 2), "Change %": 0})
+            time.sleep(0.1) # Tiny pause to be nice to Yahoo
         except: continue
     return pd.DataFrame(results)
 
@@ -279,7 +302,6 @@ def get_google_news(query):
 @st.cache_data(ttl=3600)
 def get_company_news(ticker):
     try:
-        # Reverted to simple Ticker call without manual session
         return [{"title": n['title'], "link": n['link'], "publisher": n.get('publisher', 'Yahoo')} for n in yf.Ticker(ticker).news[:5]]
     except: return []
 
