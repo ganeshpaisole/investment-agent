@@ -9,3 +9,4 @@ feedparser
 requests
 apscheduler
 twilio
+yahooquery
