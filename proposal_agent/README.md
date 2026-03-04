@@ -50,3 +50,38 @@ CLI examples
 
 CI
 - A minimal GitHub Actions workflow is included at `.github/workflows/ci.yml` which installs dev dependencies and runs `pytest` under Python 3.9.
+
+## Important: Repository history rewritten (action required)
+
+We removed `proposal_agent/.venv` from the repository history and force-pushed the rewritten history to `origin`. A backup branch was created: `backup/remove-venv-prefilter-20260304105544`.
+
+Actions for collaborators:
+
+- If you have no local changes, reclone the repository:
+
+```bash
+git clone https://github.com/ganeshpaisole/investment-agent.git
+cd investment-agent
+```
+
+- If you have local work you want to preserve, back it up and rebase onto the new history:
+
+```bash
+# save your work
+git checkout -b backup/<your-branch-name>
+git push origin backup/<your-branch-name>
+
+# sync to rewritten history
+git fetch origin
+git checkout main
+git reset --hard origin/main
+
+# restore and rebase your work
+git checkout backup/<your-branch-name>
+git rebase origin/main
+git push --force-with-lease origin backup/<your-branch-name>
+```
+
+Notes:
+- Rewriting history means existing clones will diverge; reclone if unsure.
+- Create backups of local branches before performing resets or force-pushes.
