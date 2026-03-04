@@ -1,0 +1,84 @@
+{
+    "ticker": "E2E",
+    "company_name": "E2E Networks",
+    "sector": "Technology",
+    "current_data": {
+        "price": 3068.2,
+        "market_cap_cr": 5002,
+        "annual_revenue_cr": 280,
+        "ebitda_margin": 0.566,
+        "pe_ratio": null,
+        "debt_cr": 200,
+        "cash_cr": 50
+    },
+    "growth_assumptions": {
+        "conservative": {
+            "revenue_growth_5y": [
+                0.4,
+                0.35,
+                0.3,
+                0.25,
+                0.2
+            ],
+            "ebitda_margins_5y": [
+                0.52,
+                0.54,
+                0.56,
+                0.58,
+                0.59
+            ]
+        },
+        "base": {
+            "revenue_growth_5y": [
+                0.55,
+                0.45,
+                0.38,
+                0.32,
+                0.25
+            ],
+            "ebitda_margins_5y": [
+                0.57,
+                0.59,
+                0.61,
+                0.63,
+                0.64
+            ]
+        },
+        "aggressive": {
+            "revenue_growth_5y": [
+                0.7,
+                0.6,
+                0.5,
+                0.42,
+                0.35
+            ],
+            "ebitda_margins_5y": [
+                0.6,
+                0.62,
+                0.65,
+                0.67,
+                0.68
+            ]
+        }
+    },
+    "technical_data": {
+        "support_levels": [
+            2200,
+            2100,
+            1900,
+            1710
+        ],
+        "resistance_levels": [
+            2850,
+            3000,
+            3622,
+            4000
+        ],
+        "ma_50": 2591,
+        "ma_200": 2400,
+        "rsi": 52
+    },
+    "notes": "E2E Networks - GPU cloud infrastructure company. Data as of Feb 2026.",
+    "last_updated": "2026-02-18T12:24:51.146211",
+    "data_source": "Yahoo Finance"
+}

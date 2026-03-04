@@ -1,0 +1,71 @@
+LICICI Bank
+
+ICICI Bank Limited
+CIN-L65190GJ1994PLC021012
+
+Registered Office: ICICI] Bank Tower, Near Chakli Circle, Old Padra Road, Vadodara - 390 007, Gujarat, Phone: 0265-6722239
+Corporate Office: ICICI Bank Towers, Bandra-Kurla Complex, Mumbai - 400 051, Maharashtra, Phone: 022-4008 8900
+Website: www.icici.oank.in, Email: companysecretary@icicibank.com
+
+STANDALONE FINANCIAL RESULTS
+
+@in crore)
+Three months ended Nine months ended Year ended
+Sr. December September December December December March 31,
+No. Particulars 31, 2025 30, 2025 31, 2024 31, 2025 31, 2024 2025
+(Q3-2026) (Q2-2026) | (Q3-2025) | (9M-2026) | (9M-2025) (FY2025)
+(Unaudited) | (Unaudited) | (Unaudited) | (Unaudited) | (Unaudited) (Audited)
+1. Interest earned (a)+(b)+(c}+(d) 41,965.84 41,757.95 41,299.82 126,670.70 120,832.98 163,263.78
+a) | Interest/discount on advances/bills 32,520.08 32,183.68 32,048.40 97,246.68 93,583.39 126,404.72
+b) | Income on investments 8,216.90 8,459.54 8,302.14 25,389.28 24,770.05 32,980.23
+¢) Interest on balances with Reserve Bank
+of India and other inter-bank funds 672.72 646.99 489.59 2,087.11 1,449.70 2,155.82
+d) | Others 556.14 467.74 459.69 1,947.63 1,029.84 1,723.01
+2. Other income 7,368.16 7,575.54 7,068.05 23,448.60 21,246.63 28,506.70
+3._| TOTAL INCOME (1)+(2) 49,334.00 49,333.49 48,367.87 | 150,119.30 | 142,079.61 | 191,770.48
+4 Interest expended 20,033.60 20,228.49 20,929.21 61,574.54 60,861.48 82,099.34
+5. Operating expenses (e)+(f) 11,944.44 11,807.04 10,552.11 35,145.00 31,583.56 42,372.32
+e) | Employee cost 4,421.80 4341.84 3,929.05 13,506.72 12,435.70 16,540.88
+f) Other operating expenses 7,522.64 7,465.20 6,623.06 21,638.28 19,147.86 25,831.44
+6. TOTAL EXPENDITURE EXCLUDING
+PROVISIONS AND CONTINGENCIES (4)+(5) 31,978.04 32,035.53 31,481.32 96,719.54 92,445.04 124,471.66
+7. OPERATING PROFIT BEFORE PROVISIONS
+AND CONTINGENCIES (3)-(6) 17,355.96 17,297.96 16,886.55 53,399.76 49,634.57 67,298.82
+8. Provisions (other than tax) and contingencies 2,555.58 914.11 1,226.65 5,284.26 3,791.92 4,682.62
+9. PROFIT FROM ORDINARY ACTIVITIES
+BEFORE EXCEPTIONAL ITEMS AND TAX (7)-
+(8) 14,800.38 16,383.85 15,659.90 48,115.50 45,842.65 62,616.20
+10. | Exceptional items
+11. | PROFIT FROM ORDINARY ACTIVITIES
+BEFORE TAX (9)-(10) 14,800.38 16,383.85 15,659.90 48,115.50 45,842.65 62,616.20
+12. | Tax expense (g)+(h) 3,482.52 4,024.96 3,867.48 11,670.54 11,245.24 15,389.21
+g)_| Current tax 3,526.76 3,732.30 3,902.77 11,192.91 10,535.76 14,588.49
+h) | Deferred tax (44.24) 292.66 (35.29) 477.63 709.48 800.72
+13. | NET PROFIT FROM ORDINARY ACTIVITIES
+AFTER TAX (11)-(12) 11,317.86 12,358.89 11,792.42 36,444.96 34,597.41 47,226.99
+14. | Extraordinary items (net of tax expense} “ “ “ “ . “
+15. | NET PROFIT FOR THE PERIOD (13)-(14) 11,317.86 12,358.89 11,792.42 36,444.96 34,597.41 47,226.99
+16. | Paid-up equity share capital (face value % 2
+each) 1,430.35 1,428.95 1,412.11 1,430.35 1,412.11 1,424.60
+17. | Reserves excluding revaluation reserves 284,843.68
+18. | Analytical ratios
+i) Percentage of shares held by
+Government of India 0.22% 0.22% 0.22% 0.22% 0.22% 0.22%
+ji) | Capital adequacy ratio (Basel III} 15.59% 15.76% 14.71% 15.59% 14.71% 16.55%
+iii) | Earmings per share (EPS)
+a) | Basic EPS before and after
+extraordinary items, net of tax
+expense (not annualised) {in 2) 15.84 17.31 16.72 51.05 49.13 67.01
+b) | Diluted EPS before and after
+extraordinary items, net of tax
+expense (not annualised) {in 2) 15.62 17.06 16.45 50.30 48.30 65.89
+19. | NPA Ratio*
+i) Gross non-performing customer assets
+(net of write-off) 23,757.88 23,849.66 27,745.33 23,757.88 27,745.33 24,166.18
+ii) Net non-performing customer assets 5,731.95 5,827.00 5,897.76 5,731.95 5,897.76 5,589.41
+iii) | % of gross non-performing customer
+assets (net of write-off) to gross
+customer assets 1.53% 1.58% 1.96% 1.53% 1.96% 1.67%
+iv) | % of net non-performing customer
+assets to net customer assets 0.37% 0.39% 0.42% 0.37% 0.42% 0.39%
+

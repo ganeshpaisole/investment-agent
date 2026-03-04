@@ -1,0 +1,22 @@
+# NSE Master Agent v2.0 — Full Requirements (Updated)
+# Install all: pip install -r requirements_master.txt
+
+# Core
+anthropic>=0.25.0
+yfinance>=0.2.40
+pandas>=2.0.0
+numpy>=1.26.0
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+loguru>=0.7.0
+rich>=13.7.0
+
+# Technical Analysis
+ta>=0.10.2
+
+# Dashboard
+streamlit>=1.32.0
+plotly>=5.18.0
+
+# NSE Data (optional but recommended)
+# nsepython>=2.0       # For live FII/DII + options chain

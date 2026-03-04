@@ -1,0 +1,72 @@
+{
+    "ticker": "JSWSTEEL",
+    "company_name": "JSW Steel",
+    "sector": "Manufacturing",
+    "current_data": {
+        "price": 0,
+        "market_cap_cr": 0,
+        "annual_revenue_cr": 0,
+        "ebitda_margin": 0,
+        "pe_ratio": null,
+        "debt_cr": 0,
+        "cash_cr": 0
+    },
+    "growth_assumptions": {
+        "conservative": {
+            "revenue_growth_5y": [
+                0.08,
+                0.07,
+                0.07,
+                0.06,
+                0.06
+            ],
+            "ebitda_margins_5y": [
+                0.1,
+                0.11,
+                0.11,
+                0.12,
+                0.12
+            ]
+        },
+        "base": {
+            "revenue_growth_5y": [
+                0.12,
+                0.11,
+                0.1,
+                0.09,
+                0.08
+            ],
+            "ebitda_margins_5y": [
+                0.13,
+                0.14,
+                0.15,
+                0.15,
+                0.16
+            ]
+        },
+        "aggressive": {
+            "revenue_growth_5y": [
+                0.18,
+                0.16,
+                0.14,
+                0.12,
+                0.1
+            ],
+            "ebitda_margins_5y": [
+                0.16,
+                0.17,
+                0.18,
+                0.19,
+                0.2
+            ]
+        }
+    },
+    "technical_data": {
+        "support_levels": [],
+        "resistance_levels": [],
+        "ma_50": 0,
+        "ma_200": 0,
+        "rsi": 50
+    },
+    "notes": "NIFTY 50 stock - Fill in current data from Screener.in. Generated: 2026-02-18"
+}

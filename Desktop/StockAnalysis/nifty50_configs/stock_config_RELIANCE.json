@@ -1,0 +1,74 @@
+{
+    "ticker": "RELIANCE",
+    "company_name": "Reliance Industries",
+    "sector": "Manufacturing",
+    "current_data": {
+        "price": 1441.3,
+        "market_cap_cr": 1950435.25,
+        "annual_revenue_cr": 1024547.99,
+        "ebitda_margin": 0.1644,
+        "pe_ratio": 23.45,
+        "debt_cr": 374593.0,
+        "cash_cr": 223871.0
+    },
+    "growth_assumptions": {
+        "conservative": {
+            "revenue_growth_5y": [
+                0.08,
+                0.07,
+                0.07,
+                0.06,
+                0.06
+            ],
+            "ebitda_margins_5y": [
+                0.1,
+                0.11,
+                0.11,
+                0.12,
+                0.12
+            ]
+        },
+        "base": {
+            "revenue_growth_5y": [
+                0.12,
+                0.11,
+                0.1,
+                0.09,
+                0.08
+            ],
+            "ebitda_margins_5y": [
+                0.13,
+                0.14,
+                0.15,
+                0.15,
+                0.16
+            ]
+        },
+        "aggressive": {
+            "revenue_growth_5y": [
+                0.18,
+                0.16,
+                0.14,
+                0.12,
+                0.1
+            ],
+            "ebitda_margins_5y": [
+                0.16,
+                0.17,
+                0.18,
+                0.19,
+                0.2
+            ]
+        }
+    },
+    "technical_data": {
+        "support_levels": [],
+        "resistance_levels": [],
+        "ma_50": 0,
+        "ma_200": 0,
+        "rsi": 50
+    },
+    "notes": "NIFTY 50 stock - Fill in current data from Screener.in. Generated: 2026-02-18",
+    "last_updated": "2026-02-18T22:11:17.523784",
+    "data_source": "Yahoo Finance (yfinance)"
+}

@@ -1,0 +1,83 @@
+ENHANCED SECURITY FEATURES IN DEBIT CARD
+
+Debit Card has enhanced security features:
+
+a. At the time of issue of new/replacement/renewal, a Debit Card is ENABLED only for Domestic ATM Cash and PoS
+(Merchant) transactions (Card Present transactions).
+
+b. Customers can ENABLE (Switch On) and DISABLE (Switch Off) Usage and Channels of Debit Card as per their
+requirement. Usage types are Domestic, International. Channels are ATM, PoS (Merchant), E-Commerce (Online)
+and Contactless transactions. Facility to switch-on/ switch-off is available through Branch, Internet Banking
+(Personal) YONO Mobile App, YONO Lite Mobile App, ATM & IVR.
+
+c. Customer can Set / Modify Transaction Limits in Debit card. Set/ Modify Limits is available through Internet
+
+Banking (Personal), Branch, IVR, ATM, YONO App & YONO Lite (Mobile App).
+
+Banking Channels to Switch On / Switch Off Usage/ Channels in Debit Cards and Set/ Modify transaction Limits
+
+INTERNET BANKING
+Online SBI — Personal
+Login in https://www.onlinesbi.sbi with User Id and
+Password, Enter OTP Received in Registered Mobile
+Number (RMN)
+Select Menu
+- E-Services
+- ATM Card Services
+- ATM Card Limit/Channel/Usage Change
+- Select Account Number
+- Select Card Number
+- Select Services
+Change Channel Type
+> Select ATM Channel /POS Channel/CNP
+Channel (Online)
+> Select Enable / Disable Radio Button and
+Submit
+Change Usage Type
+> Select Domestic Usage / International Usage /
+NFC Usage
+> Select Enable / Disable Radio Button and
+Submit.
+Change Daily Limit
+> Select ATM Limit or POS/CNP Limit (online)
+> Enter new Limit and Submit.
+Change NFC Debit Card Transaction Limit
+> Enter new per transaction limit (Multiple of
+100 only, Maximum Limit Rs.5000.00)
+
+YONO SBI MOBILE APP
+Login with User Id and Password or MPIN
+Select Menu
+
+> Service Request
+
+> ATM/Debit Card
+
+> Enter Internet Banking Profile
+
+Password
+
+> ATM/Debit Card
+
+> Manage Card
+
+> Select Account
+
+> Select Card
+Manage Channel/Usage
+ATM/Debit Card Transactions ON — OFF
+POS (Merchant Transactions) ON — OFF
+E-Commerce Transactions ON — OFF
+Domestic Usage ON — OFF
+International Usage ON — OFF
+Contactless (NFC) Functionality = ON—OFF
+
+Slide the Button to ON and OFF
+
+Manage Limits (Limits to be set in multiples of 5,000)
+ATM/Debit Card
+Enter New Limit
+POS/E-Commerce
+Enter New Limit
+Submit NEXT
+

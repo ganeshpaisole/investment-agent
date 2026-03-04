@@ -1,0 +1,79 @@
+{
+  "roles": {
+    "Project Manager": {
+      "onshore": 1200,
+      "offshore": 800,
+      "util": 0.8
+    },
+    "Solution Architect": {
+      "onshore": 1500,
+      "offshore": 1000,
+      "util": 0.8
+    },
+    "Functional Consultant": {
+      "onshore": 900,
+      "offshore": 600,
+      "util": 0.8
+    },
+    "Developer": {
+      "onshore": 800,
+      "offshore": 400,
+      "util": 0.8
+    },
+    "QA Engineer": {
+      "onshore": 700,
+      "offshore": 350,
+      "util": 0.8
+    },
+    "Basis/Infra": {
+      "onshore": 1000,
+      "offshore": 600,
+      "util": 0.8
+    }
+  },
+  "product_profiles": {
+    "sap": {
+      "days_per_module": 12,
+      "module_multiplier": 1.1,
+      "mix": {
+        "Project Manager": 0.1,
+        "Solution Architect": 0.1,
+        "Functional Consultant": 0.3,
+        "Developer": 0.3,
+        "QA Engineer": 0.15,
+        "Basis/Infra": 0.05
+      }
+    },
+    "dynamics": {
+      "days_per_module": 9,
+      "module_multiplier": 1.0,
+      "mix": {
+        "Project Manager": 0.1,
+        "Solution Architect": 0.08,
+        "Functional Consultant": 0.32,
+        "Developer": 0.3,
+        "QA Engineer": 0.15,
+        "Basis/Infra": 0.05
+      }
+    },
+    "mes": {
+      "days_per_module": 8,
+      "module_multiplier": 1.2,
+      "mix": {
+        "Project Manager": 0.12,
+        "Solution Architect": 0.1,
+        "Functional Consultant": 0.2,
+        "Developer": 0.35,
+        "QA Engineer": 0.15,
+        "Basis/Infra": 0.08
+      }
+    }
+  },
+  "default_days_per_module": 10,
+  "calibration_factor": 1.1,
+  "product_calibration": {
+    "sap": 1.1,
+    "mes": 1.15,
+    "dynamics": 1.025
+  }
+}

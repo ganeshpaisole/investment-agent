@@ -1,0 +1,27 @@
+NSE STOCK SCREENER — NIFTY 50 REPORT
+Generated: 2026-02-25 00:36
+Total time: 60s | Stocks analyzed: 6 | Errors: 0
+============================================================
+
+🟢 STRONG BUY CANDIDATES (Overall ≥70, Upside ≥15%)
+  LTIM         Overall: 82/100  Upside:+8208%  ROE:21.0%  RSI:10
+  WIPRO        Overall: 79/100  Upside:+7404%  ROE:15.2%  RSI:10
+  TECHM        Overall: 79/100  Upside:+1652%  ROE:14.6%  RSI:10
+  INFY         Overall: 78/100  Upside:+32%  ROE:32.7%  RSI:8
+  TCS          Overall: 77/100  Upside:+26%  ROE:42.6%  RSI:13
+  HCLTECH      Overall: 75/100  Upside:+18%  ROE:23.2%  RSI:10
+
+🟢 BUY / ACCUMULATE (Overall ≥60, Upside ≥0%)
+
+⚠️  CAUTION / AVOID (Overall <50)
+
+📉 OVERSOLD WATCH (RSI <30 — contrarian opportunity)
+  LTIM         RSI:10  3M:-23.6%  Overall: 82/100  Upside:+8208%
+  WIPRO        RSI:10  3M:-17.9%  Overall: 79/100  Upside:+7404%
+  TECHM        RSI:10  3M:-11.5%  Overall: 79/100  Upside:+1652%
+  INFY         RSI:8  3M:-18.1%  Overall: 78/100  Upside:+32%
+  TCS          RSI:13  3M:-17.1%  Overall: 77/100  Upside:+26%
+  HCLTECH      RSI:10  3M:-16.6%  Overall: 75/100  Upside:+18%
+
+============================================================
+Not SEBI-registered investment advice. Do your own research.

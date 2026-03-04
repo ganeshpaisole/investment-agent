@@ -1,0 +1,23 @@
+RFP: SAP S/4 HANA Implementation
+
+Company: Contoso Manufacturing
+Submission deadline: 2026-04-15
+Timeline: 9 months
+
+Scope:
+- Implement SAP S/4 HANA for Finance and Supply Chain
+- Migrate historical data from legacy ERP (10 years)
+- Integrate with MES and third-party logistics providers
+
+Must-have:
+- Financial consolidation, AR/AP automation, Inventory valuation
+- Automated batch traceability integration with MES
+- Cutover with minimal downtime (<24 hours)
+
+Nice-to-have:
+- Embedded analytics and predictive inventory
+
+Evaluation Criteria:
+- Fixed-price proposal, proven experience in manufacturing, references, delivery timeline
+
+Compliance: GDPR, Data residency in EU

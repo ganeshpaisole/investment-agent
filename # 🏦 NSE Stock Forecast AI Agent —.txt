@@ -1,0 +1,625 @@
+# 🏦 NSE Stock Forecast AI Agent — Complete Blueprint
+### A 360° Investment Intelligence System Inspired by Graham & Buffett Principles
+
+---
+
+## EXECUTIVE SUMMARY
+
+This document outlines the architecture, methodology, data sources, and implementation roadmap for an AI-powered NSE (National Stock Exchange of India) Stock Forecast Agent. The agent follows a **Value Investing + Quantitative Analysis** hybrid approach, incorporating Benjamin Graham's margin of safety and Warren Buffett's qualitative moat assessment alongside modern ML-based forecasting.
+
+---
+
+## PART 1: PHILOSOPHICAL FOUNDATION
+
+### 1.1 Graham's Core Principles (Embedded Rules)
+| Principle | Agent Implementation |
+|---|---|
+| Margin of Safety (≥30%) | Never recommend unless intrinsic value > market price by 30% |
+| Mr. Market Analogy | Sentiment score treated as noise, not signal |
+| Earnings Power | Focus on 10-year normalized EPS trend |
+| Net-Net Valuation | Flag stocks trading below NCAV (Net Current Asset Value) |
+| Diversification | Portfolio concentration limits built-in |
+
+### 1.2 Buffett's Core Principles (Embedded Rules)
+| Principle | Agent Implementation |
+|---|---|
+| Durable Competitive Moat | Moat scoring engine (brand, cost, network, switching) |
+| Circle of Competence | Industry-specific sub-agents with domain knowledge |
+| Owner Earnings | Free Cash Flow over reported EPS priority |
+| Management Integrity | Promoter pledge %, related party transactions, AGM analysis |
+| Long-Term Horizon | 3–5 year price targets, not short-term |
+| ROE > 15% consistently | Hard filter in fundamental screening |
+| Low Debt | Debt-to-Equity < 1 as baseline filter |
+
+---
+
+## PART 2: SYSTEM ARCHITECTURE
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     NSE AI FORECAST AGENT                        │
+│                     (Orchestrator Layer)                         │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │
+        ┌──────────────────┼──────────────────────┐
+        │                  │                       │
+   ┌────▼────┐        ┌────▼────┐           ┌─────▼─────┐
+   │  Data   │        │Analysis │           │ Forecast  │
+   │Ingestion│        │ Engine  │           │  Engine   │
+   │  Layer  │        │         │           │           │
+   └────┬────┘        └────┬────┘           └─────┬─────┘
+        │                  │                       │
+   ┌────▼──────────────────▼───────────────────────▼────┐
+   │                    OUTPUT LAYER                      │
+   │  Report | Dashboard | Alerts | Portfolio Suggestion  │
+   └─────────────────────────────────────────────────────┘
+```
+
+### 2.1 Sub-Agents (Specialist Modules)
+
+```
+NSE Forecast Agent (Master)
+│
+├── 1. Fundamental Analysis Agent
+├── 2. Technical Analysis Agent
+├── 3. Market Sentiment Agent
+├── 4. Geopolitical Risk Agent
+├── 5. Industry & Sector Trend Agent
+├── 6. Management Quality Agent
+├── 7. Valuation Agent (Graham/DCF/DDM)
+├── 8. Macroeconomic Agent
+├── 9. Peer Comparison Agent
+└── 10. Portfolio Risk Agent
+```
+
+---
+
+## PART 3: DATA SOURCES & INGESTION
+
+### 3.1 Financial Data Sources (India-Specific)
+| Data Type | Source | API/Method |
+|---|---|---|
+| Stock Prices (Live) | NSE India / BSE | nsepython, yfinance (NSE symbol) |
+| Financials (Quarterly/Annual) | BSE Filings, Screener.in | Web scraping / Screener API |
+| Corporate Actions | NSE Corporate Actions | nsepython |
+| Shareholding Pattern | BSE/NSE filings | Quarterly filings |
+| Promoter Pledge Data | NSE | Monthly disclosure |
+| Mutual Fund Holdings | AMFI, Trendlyne | AMFI API |
+| FII/DII Activity | NSE | nsepython |
+| Credit Ratings | CRISIL, ICRA, CARE | Web scraping |
+| Annual Reports | Company IR pages | PDF extraction (LLM-powered) |
+| Concall Transcripts | Screener.in, Trendlyne | Scraping + NLP |
+
+### 3.2 Sentiment & Qualitative Sources
+| Data Type | Source | Method |
+|---|---|---|
+| News (India) | Economic Times, Mint, Business Standard | NewsAPI / RSS |
+| Social Sentiment | Twitter/X, Reddit (r/IndiaInvestments) | API + VADER/BERT |
+| Management Interviews | CNBC TV18, Bloomberg Quint | YouTube transcripts (Whisper) |
+| RBI Policy | RBI Website | PDF parsing |
+| SEBI Circulars | SEBI Website | PDF parsing |
+
+### 3.3 Geopolitical & Macro Sources
+| Data Type | Source |
+|---|---|
+| Crude Oil Prices | OPEC / EIA API |
+| USD/INR Exchange Rate | RBI / Yahoo Finance |
+| US Fed Rate Decisions | Federal Reserve API |
+| India GDP, CPI, IIP | MOSPI, RBI |
+| Global Risk Index | ACLED, GPR Index |
+| FDI Flows | DPIIT |
+
+---
+
+## PART 4: FUNDAMENTAL ANALYSIS ENGINE
+
+### 4.1 Financial Health Scorecard (Graham-Inspired)
+
+**Category 1: Earnings Quality (25 points)**
+- 10-year EPS CAGR > 10% → 10 pts
+- EPS Consistency (no loss year in 10 yrs) → 8 pts
+- Quality of Earnings (CFO/Net Income > 0.9) → 7 pts
+
+**Category 2: Balance Sheet Strength (25 points)**
+- Current Ratio > 2 → 8 pts
+- Debt/Equity < 0.5 → 10 pts
+- Interest Coverage > 5x → 7 pts
+
+**Category 3: Profitability & Returns (25 points)**
+- ROE > 15% (5-year avg) → 10 pts
+- ROCE > 15% (5-year avg) → 8 pts
+- Net Profit Margin trend (improving) → 7 pts
+
+**Category 4: Dividend & Capital Allocation (25 points)**
+- Dividend paid for 5+ years → 8 pts
+- Payout Ratio (20–50%) → 7 pts
+- Buybacks or value-accretive acquisitions → 10 pts
+
+**Total: 100 Points → Grade A (80–100), B (60–79), C (40–59), D (<40)**
+
+### 4.2 Key Financial Ratios — NSE Context
+```python
+# Core Ratios the Agent Computes
+ratios = {
+    "Valuation": ["P/E", "P/B", "EV/EBITDA", "PEG Ratio", "P/FCF"],
+    "Profitability": ["ROE", "ROCE", "ROA", "EBITDA Margin", "PAT Margin"],
+    "Leverage": ["D/E Ratio", "Interest Coverage", "Net Debt/EBITDA"],
+    "Efficiency": ["Asset Turnover", "Inventory Days", "Debtor Days", "Cash Conversion Cycle"],
+    "Growth": ["Revenue CAGR (3/5/10yr)", "EPS CAGR", "FCF CAGR"],
+    "Quality": ["CFO/EBITDA", "Working Capital Trend", "Contingent Liabilities/Net Worth"]
+}
+```
+
+---
+
+## PART 5: VALUATION ENGINE
+
+### 5.1 Multi-Model Valuation (Buffett Approach)
+
+**Model 1: Discounted Cash Flow (DCF)**
+```
+Intrinsic Value = Σ [FCFt / (1+WACC)^t] + Terminal Value
+- FCF Growth (Phase 1: 3 yrs): Historical FCF CAGR
+- FCF Growth (Phase 2: 4-7 yrs): Conservative normalized
+- Terminal Growth Rate: India long-run GDP (~6.5%)
+- WACC: Risk-free rate (10yr G-Sec) + Beta × Equity Risk Premium
+```
+
+**Model 2: Graham Number**
+```
+Graham Number = √(22.5 × EPS × Book Value Per Share)
+Buy Zone: Market Price < Graham Number × 0.7 (30% MoS)
+```
+
+**Model 3: Earnings Power Value (EPV)**
+```
+EPV = Normalized EBIT × (1 - Tax Rate) / WACC
+Compares EPV with Asset Value to identify moat
+```
+
+**Model 4: Dividend Discount Model (DDM)**
+```
+For dividend-paying blue chips:
+P = D1 / (Ke - g)
+Where g = Sustainable Growth Rate = ROE × Retention Ratio
+```
+
+**Model 5: Relative Valuation**
+```
+- Sector P/E comparison (vs NSE sector index)
+- EV/EBITDA vs 5-year median
+- P/B vs sector peers
+```
+
+**Final Intrinsic Value = Weighted Average of All Models**
+```
+Final IV = 0.40×DCF + 0.25×EPV + 0.20×Relative + 0.10×Graham + 0.05×DDM
+```
+
+---
+
+## PART 6: MOAT ANALYSIS ENGINE (Buffett Framework)
+
+### 6.1 Competitive Moat Scoring (100 points)
+
+**1. Cost Advantage (20 pts)**
+- Lowest cost producer in sector
+- Economies of scale evidence
+- Operational efficiency vs peers
+
+**2. Network Effect (20 pts)**
+- Platform-based business (exchanges, marketplaces)
+- User growth → value growth loop
+
+**3. Switching Costs (20 pts)**
+- Enterprise software / B2B contracts
+- Long-term regulatory licensing
+- High customer retention rate (>90%)
+
+**4. Intangible Assets (20 pts)**
+- Brand strength (survey-based or market share)
+- Patents, proprietary technology
+- Regulatory licenses (BFSI, pharma, telecom)
+
+**5. Efficient Scale (20 pts)**
+- Duopoly or oligopoly market position
+- High capex barrier for new entrants
+- Market share stability over 5 years
+
+**Moat Rating: Wide (80-100) | Narrow (50-79) | None (<50)**
+
+---
+
+## PART 7: MANAGEMENT QUALITY AGENT
+
+### 7.1 Quantitative Management Checks
+```
+✅ Promoter Holding > 40% (skin in the game)
+✅ Promoter Pledge < 10% of their holding
+✅ No related party transaction anomalies
+✅ CFO tenure > 3 years (stability)
+✅ Capital allocation: ROCE > Cost of Capital consistently
+✅ Auditor: Big 4 or reputed firm (no frequent changes)
+✅ No qualified audit opinion in last 5 years
+✅ Salary/Profit ratio of promoter-directors < 5%
+```
+
+### 7.2 Qualitative Management Assessment (LLM-Powered)
+The agent uses NLP to analyze:
+- **Annual Report Letters to Shareholders** → Extract forward guidance, honesty of assessment
+- **Concall Transcripts** → Management tone analysis, guidance accuracy vs actuals
+- **AGM Minutes** → Shareholder Q&A sentiment
+- **Interview Transcripts** → Vision clarity, consistency of messaging
+- **SEBI Enforcement Orders** → Check for past violations
+
+**Management Score: 0–100 (weighted composite)**
+
+---
+
+## PART 8: MARKET SENTIMENT ANALYSIS
+
+### 8.1 Sentiment Data Pipeline
+```
+News Headlines → NLP Preprocessing → BERT Sentiment Model
+                                    → Entity Extraction (Company Name)
+                                    → Sentiment Score (-1 to +1)
+                                    → Time-weighted aggregation (recent = higher weight)
+```
+
+### 8.2 Sentiment Indicators
+| Indicator | Source | Interpretation |
+|---|---|---|
+| FII Net Buy/Sell (30-day) | NSE | Institutional conviction |
+| DII Activity | NSE | Domestic resilience |
+| Options PCR (Put-Call Ratio) | NSE | Market fear/greed |
+| India VIX | NSE | Volatility regime |
+| Short Interest | NSE F&O | Bearish positioning |
+| Mutual Fund Net Flows | AMFI | Retail sentiment |
+| Social Media Score | Twitter/Reddit | Retail momentum |
+
+### 8.3 Contrarian Signal (Graham-Based)
+```
+If Sentiment Score < -0.5 AND Fundamentals Score > 70:
+    → "Potential Deep Value Opportunity" (Buy the fear)
+If Sentiment Score > 0.8 AND Fundamentals Score < 50:
+    → "Euphoria Warning" (Avoid / reduce)
+```
+
+---
+
+## PART 9: GEOPOLITICAL & MACRO RISK ENGINE
+
+### 9.1 India-Specific Macro Factors
+```
+Tier 1 — Direct Impact:
+├── RBI Monetary Policy (Repo Rate changes)
+├── Union Budget (fiscal policy, sector allocations)
+├── INR/USD movement
+├── Crude Oil prices (India imports ~85% needs)
+└── Inflation (CPI, WPI trend)
+
+Tier 2 — Indirect Impact:
+├── US Fed Rate decisions
+├── China economic slowdown/recovery
+├── Global commodity cycles (metals, agri)
+├── Monsoon forecast (RBI, IMD)
+└── Electoral cycles (state + central)
+
+Tier 3 — Tail Risk:
+├── India-Pakistan/China geopolitical tension
+├── Global supply chain disruptions
+├── Pandemic risk
+└── Cyber/tech infrastructure risks
+```
+
+### 9.2 Geopolitical Risk Scoring
+```python
+geo_risk_score = {
+    "border_tension_index": 0-10,      # scaled from news frequency
+    "sanctions_exposure": 0-10,         # Russia/China linked businesses
+    "export_dependency_risk": 0-10,     # revenue from geopolitically sensitive regions
+    "regulatory_risk": 0-10,            # SEBI/RBI policy uncertainty
+    "currency_risk": 0-10               # INR volatility impact on margins
+}
+```
+
+---
+
+## PART 10: INDUSTRY & SECTOR TREND ANALYSIS
+
+### 10.1 NSE Sector Coverage Matrix
+```
+Banking & Finance → NPA trends, credit growth, NIMs, RBI guidelines
+IT & Technology  → Deal wins, hiring trends, US tech spending, AI disruption
+Pharma & Healthcare → USFDA inspections, patent cliff, biosimilar pipeline
+FMCG → Rural demand, urban premiumization, raw material inflation
+Auto → EV transition pace, PLI uptake, commodity costs
+Infra & Real Estate → Government capex, RERA compliance, demand cycle
+Energy (Oil & Gas) → Crude prices, refining margins, green energy transition
+Metals → China demand, global commodity cycle, domestic capex
+Telecom → ARPU trends, 5G monetization, subscriber base
+Consumer Discretionary → Credit growth, sentiment, premiumization
+```
+
+### 10.2 Industry Trend Score (0–100)
+```
+= 0.30 × Demand Outlook Score
++ 0.25 × Competitive Intensity Score (inverted)
++ 0.25 × Regulatory Tailwind Score
++ 0.20 × Innovation/Disruption Resilience Score
+```
+
+---
+
+## PART 11: TECHNICAL ANALYSIS LAYER
+
+### 11.1 Technical Indicators (Confirmation Layer Only)
+In the Buffett/Graham framework, technicals are **secondary** — used for **entry timing**, not stock selection.
+
+```python
+technical_signals = {
+    "Trend": ["200 DMA", "50 DMA", "EMA crossovers"],
+    "Momentum": ["RSI (14)", "MACD", "Stochastic"],
+    "Volume": ["OBV", "Volume Spike Detection", "Delivery %"],
+    "Support/Resistance": ["Fibonacci Levels", "Pivot Points"],
+    "Volatility": ["Bollinger Bands", "ATR", "India VIX correlation"]
+}
+```
+
+**Rule: Technical score used ONLY to optimize entry price for fundamentally strong stocks.**
+
+---
+
+## PART 12: FORECAST OUTPUT STRUCTURE
+
+### 12.1 Final Stock Report Card
+```
+═══════════════════════════════════════════════════════
+NSE STOCK ANALYSIS REPORT — [COMPANY NAME] ([TICKER])
+Date: [DD-MM-YYYY]
+═══════════════════════════════════════════════════════
+
+OVERALL RATING: ⭐⭐⭐⭐ (4/5) | BUY / HOLD / AVOID
+
+SCORE SUMMARY:
+├── Fundamental Score:        82/100 ✅
+├── Valuation Score:          74/100 ✅
+├── Moat Score:               78/100 ✅
+├── Management Score:         85/100 ✅
+├── Sentiment Score:          55/100 ⚠️
+├── Geopolitical Risk:        Low    ✅
+├── Industry Trend Score:     70/100 ✅
+└── COMPOSITE SCORE:          75/100
+
+VALUATION:
+├── Current Market Price:     ₹X,XXX
+├── Intrinsic Value (DCF):    ₹X,XXX
+├── Graham Number:            ₹X,XXX
+├── Consensus IV:             ₹X,XXX
+├── Margin of Safety:         28% ⚠️ (target: >30%)
+└── 3-Year Price Target:      ₹X,XXX (upside: XX%)
+
+KEY STRENGTHS:
+• [Bullet 1]
+• [Bullet 2]
+
+KEY RISKS:
+• [Bullet 1]
+• [Bullet 2]
+
+RECOMMENDATION:
+[Detailed paragraph recommendation including entry zone,
+position sizing suggestion, stop-loss levels, and
+review triggers]
+═══════════════════════════════════════════════════════
+```
+
+---
+
+## PART 13: TECHNICAL IMPLEMENTATION ROADMAP
+
+### Phase 1: Foundation (Weeks 1–4)
+```
+Week 1: Data Pipeline Setup
+├── Set up NSE data ingestion (nsepython, yfinance)
+├── Connect Screener.in / Trendlyne for financials
+├── Set up PostgreSQL / MongoDB for storage
+└── Build ETL pipeline for daily refresh
+
+Week 2: Fundamental Engine
+├── Build financial ratio calculator
+├── Implement Graham scorecard
+├── Build Buffett moat scoring model
+└── Build valuation models (DCF, EPV, DDM)
+
+Week 3: Sentiment & News Pipeline
+├── Connect NewsAPI / RSS feeds
+├── Fine-tune BERT for Indian financial news
+├── Build FII/DII sentiment tracker
+└── Build social media monitor
+
+Week 4: Geopolitical & Macro Engine
+├── Integrate macro data sources
+├── Build geopolitical risk scoring
+└── Connect RBI/SEBI announcement tracker
+```
+
+### Phase 2: Intelligence Layer (Weeks 5–8)
+```
+Week 5–6: LLM Integration
+├── Use GPT-4 / Llama3 / Claude API for:
+│   ├── Annual report analysis
+│   ├── Concall transcript summarization
+│   ├── Management tone scoring
+│   └── News summarization
+└── Build RAG pipeline for company knowledge base
+
+Week 7: Forecasting Models
+├── LSTM/GRU for price trend prediction
+├── XGBoost for classification (Buy/Hold/Avoid)
+├── Ensemble model combining all sub-agents
+└── Backtesting framework (last 5 years NSE data)
+
+Week 8: Agent Orchestration
+├── Build LangChain / LlamaIndex multi-agent framework
+├── Define agent communication protocols
+└── Build master orchestrator agent
+```
+
+### Phase 3: Output & Deployment (Weeks 9–12)
+```
+Week 9–10: Dashboard & Reports
+├── Streamlit / FastAPI backend
+├── React frontend dashboard
+├── Automated PDF report generation
+└── WhatsApp / Email alert system
+
+Week 11: Backtesting & Validation
+├── Run agent on historical NSE data
+├── Validate against known outcomes
+├── Calibrate scoring weights
+└── Stress test with market crash scenarios (2008, 2020)
+
+Week 12: Deployment
+├── Cloud deployment (AWS / GCP)
+├── Scheduled daily runs (post-market)
+├── API exposure for portfolio integration
+└── Monitoring & alerting
+```
+
+---
+
+## PART 14: TECHNOLOGY STACK
+
+```
+Layer               Technology
+──────────────────────────────────────────────────
+Data Ingestion:     nsepython, yfinance, BeautifulSoup, Scrapy
+Database:           PostgreSQL (structured) + MongoDB (unstructured)
+Data Processing:    pandas, numpy, polars
+ML/AI Models:       scikit-learn, XGBoost, PyTorch (LSTM)
+NLP:                HuggingFace Transformers, BERT, spaCy
+LLM:                OpenAI GPT-4o / Claude API / Llama3 (local)
+Agent Framework:    LangChain / LlamaIndex / AutoGen
+Backtesting:        Backtrader / VectorBT
+API Backend:        FastAPI (Python)
+Frontend:           Streamlit (MVP) → React (production)
+Deployment:         Docker + AWS EC2 / GCP Cloud Run
+Scheduler:          Apache Airflow / Celery
+Monitoring:         Grafana + Prometheus
+PDF Generation:     ReportLab / WeasyPrint
+```
+
+---
+
+## PART 15: COMPLIANCE & DISCLAIMER ENGINE
+
+### 15.1 Built-in Guardrails (SEBI Compliance)
+```
+✅ All outputs marked as "Research Tool Output — Not SEBI Registered Advice"
+✅ Conflict of interest check (agent does not hold positions)
+✅ Data source attribution in every report
+✅ Position sizing based on risk tolerance inputs (not absolute recommendations)
+✅ Audit trail of all analysis inputs stored
+✅ No pump-and-dump signal patterns (flagged and blocked)
+```
+
+---
+
+## PART 16: SAMPLE PYTHON CODE STRUCTURE
+
+```python
+# Master Agent Orchestrator
+class NSEForecastAgent:
+    def __init__(self, ticker: str):
+        self.ticker = ticker
+        self.fundamental_agent = FundamentalAnalysisAgent(ticker)
+        self.valuation_agent = ValuationAgent(ticker)
+        self.moat_agent = MoatAnalysisAgent(ticker)
+        self.management_agent = ManagementQualityAgent(ticker)
+        self.sentiment_agent = MarketSentimentAgent(ticker)
+        self.geo_agent = GeopoliticalRiskAgent(ticker)
+        self.industry_agent = IndustryTrendAgent(ticker)
+        self.technical_agent = TechnicalAnalysisAgent(ticker)
+
+    def run_analysis(self) -> StockReport:
+        # Run all sub-agents in parallel
+        results = asyncio.gather(
+            self.fundamental_agent.analyze(),
+            self.valuation_agent.analyze(),
+            self.moat_agent.analyze(),
+            self.management_agent.analyze(),
+            self.sentiment_agent.analyze(),
+            self.geo_agent.analyze(),
+            self.industry_agent.analyze(),
+            self.technical_agent.analyze()
+        )
+        return self.synthesize_report(results)
+
+    def synthesize_report(self, results) -> StockReport:
+        composite_score = (
+            results.fundamental.score * 0.25 +
+            results.valuation.score   * 0.20 +
+            results.moat.score        * 0.20 +
+            results.management.score  * 0.15 +
+            results.sentiment.score   * 0.08 +
+            results.geo_risk.score    * 0.07 +
+            results.industry.score    * 0.05
+            # Technical used only for entry timing
+        )
+        recommendation = self.get_recommendation(composite_score, results.valuation)
+        return StockReport(ticker=self.ticker, score=composite_score, **recommendation)
+```
+
+---
+
+## PART 17: WATCHLIST & SCREENING CRITERIA
+
+### 17.1 Pre-Screening Filters (Universe Reduction)
+```
+NSE Universe (~2000 stocks)
+    ↓ Market Cap > ₹500 Cr (Mid + Large Cap focus)
+    ↓ Listed for > 5 years (track record)
+    ↓ Average Daily Volume > ₹1 Cr (liquidity)
+    ↓ ROE > 12% (last 3 years average)
+    ↓ Positive FCF in at least 3 of last 5 years
+    ↓ No SEBI enforcement in last 3 years
+    ↓ Promoter holding > 25%
+    
+Result: ~200–300 high-quality candidates for deep analysis
+```
+
+---
+
+## APPENDIX A: KEY FORMULAS REFERENCE
+
+```
+Graham Number          = √(22.5 × EPS × BVPS)
+Net Current Asset Val  = Current Assets − Total Liabilities
+Owner Earnings         = Net Income + D&A − Maintenance Capex
+WACC                   = Ke×(E/V) + Kd×(1-T)×(D/V)
+Sustainable Growth     = ROE × (1 − Dividend Payout Ratio)
+Earnings Yield         = EPS / Market Price (compare vs G-Sec yield)
+PEG Ratio             = P/E ÷ EPS Growth Rate (Buffett: PEG < 1 ideal)
+Economic Profit       = NOPAT − (Invested Capital × WACC)
+```
+
+---
+
+## APPENDIX B: BUFFETT'S 10 QUESTIONS (Embedded in Agent)
+
+1. Is the business simple and understandable?
+2. Does the business have a consistent operating history (10+ years)?
+3. Does the business have favorable long-term prospects (moat)?
+4. Is management rational in capital allocation?
+5. Is management honest with shareholders?
+6. Does management resist institutional imperative?
+7. What is the return on equity without leverage?
+8. What are the owner earnings?
+9. Does the company require significant reinvestment (capex-light)?
+10. Can we buy it at a significant discount to intrinsic value?
+
+---
+
+*Document Version: 1.0 | Framework: Graham-Buffett + Modern AI*
+*Intended Use: Personal Research Tool | Not SEBI Registered Investment Advice*

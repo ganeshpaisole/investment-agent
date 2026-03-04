@@ -1,0 +1,17 @@
+{
+  "title": "RFP: Dynamics 365 CRM & Finance",
+  "raw": "RFP: Dynamics 365 CRM & Finance\n\nCompany: Northwind Retail\nSubmission deadline: 2026-04-22\nTimeline: 6 months\n\nScope:\n- Implement Dynamics 365 Sales and Customer Service\n- Integrate with POS systems and ERP for order sync\n- Migrate customer master and 3 years transactional history\n\nMust-have:\n- Omni-channel customer view, case management, API integration\n\nNice-to-have:\n- Power BI dashboards\n\nEvaluation Criteria:\n- Fixed-price, experience in retail, local support\n\nCompliance: GDPR, local procurement rules\n",
+  "submission_deadline": "2026-04-22",
+  "timeline": "6 months",
+  "scope": "- Implement Dynamics 365 Sales and Customer Service\n- Integrate with POS systems and ERP for order sync\n- Migrate customer master and 3 years transactional history",
+  "must_have": "- Omni-channel customer view, case management, API integration",
+  "nice_to_have": "- Power BI dashboards",
+  "evaluation_criteria": "- Fixed-price, experience in retail, local support",
+  "compliance": "GDPR, local procurement rules",
+  "scope_items": [
+    "Implement Dynamics 365 Sales and Customer Service",
+    "Integrate with POS systems and ERP for order sync",
+    "Migrate customer master and 3 years transactional history"
+  ],
+  "modules_count": 3
+}

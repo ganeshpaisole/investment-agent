@@ -1,0 +1,32 @@
+(eS Step by Step Process for Loading/Reloading FTC through Retail Internet Banking (RINB) : -
+
+1.
+
+2.
+3.
+
+After Log in to RINB > Click e-Services.
+Under e-Service, click e-Cards.
+Under e-Cards, please click following options: -
+
+a) Prepaid > State Bank Foreign Travel Card
+
+b) Click View My Linked FTC option to check whether your FTC is linked.
+
+c) If not linked, please use the option Link My FTC to link the card.
+For Loading, please click on below path:
+
+State Bank Foreign Travel Card > Reload My FTC ~> Select the Debit Account
+
+Using drop down, select the Card for Load/Reload
+Enter all the details like, passport validity, VISA details, flight details.
+
+After entering all details and accepting terms and conditions, click Submit button. On entering OTP transaction will
+be sent for processing.
+
+Under History Tab transaction status can be viewed.
+
+Transactions initiated before 03:00 pm will be authorized on the same day and transaction initiated after 03:00 pm
+and non-working day will be authorized on the next working day. Please keep sufficient balance till the transaction is
+authorized.
+

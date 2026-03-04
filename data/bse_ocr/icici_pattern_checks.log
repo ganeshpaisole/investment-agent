@@ -1,0 +1,384 @@
+﻿---
+.Name
+PDF not found: .FullName
+---
+.Name
+PDF not found: .FullName
+---
+.Name
+PDF not found: .FullName
+---
+.Name
+PDF not found: .FullName
+---
+.Name
+PDF not found: .FullName
+---
+.Name
+PDF not found: .FullName
+---
+.Name
+PDF not found: .FullName
+---
+.Name
+PDF not found: .FullName
+---
+.Name
+PDF not found: .FullName
+---
+.Name
+PDF not found: .FullName
+---
+.Name
+PDF not found: .FullName
+---
+.Name
+PDF not found: .FullName
+---
+.Name
+PDF not found: .FullName
+---
+.Name
+PDF not found: .FullName
+---
+.Name
+PDF not found: .FullName
+---
+.Name
+PDF not found: .FullName
+---
+.Name
+PDF not found: .FullName
+---
+.Name
+PDF not found: .FullName
+=== ICICI pattern scan started: 2026-02-28T15:10:18.034265
+---
+020348a860c54b70.pdf
+Extracted chars: 1811
+NO MATCH for casa
+NO MATCH for car
+NO MATCH for nim
+---
+28e6f0219ad508bf.pdf
+Extracted chars: 6214
+NO MATCH for casa
+NO MATCH for car
+NO MATCH for nim
+---
+31b3e85e68e3f104.pdf
+Extracted chars: 1743
+NO MATCH for casa
+NO MATCH for car
+NO MATCH for nim
+---
+3cf1b201cb84b802.pdf
+Extracted chars: 1251
+NO MATCH for casa
+NO MATCH for car
+NO MATCH for nim
+---
+3cfe92e110c36c15.pdf
+Extracted chars: 5739
+NO MATCH for casa
+NO MATCH for car
+NO MATCH for nim
+---
+4248e51b492eda04.pdf
+Extracted chars: 92516
+MATCH casa: 3.9
+MATCH car: 19.55
+NO MATCH for nim
+---
+45e7947dc56f4a8c.pdf
+Extracted chars: 39131
+NO MATCH for casa
+NO MATCH for car
+NO MATCH for nim
+---
+5c84a22b1a5a1de5.pdf
+Extracted chars: 22070
+NO MATCH for casa
+NO MATCH for car
+NO MATCH for nim
+---
+64f36a6e329bc445.pdf
+Extracted chars: 20668
+MATCH casa: 39.0
+NO MATCH for car
+NO MATCH for nim
+---
+7ac119582aa30607.pdf
+Extracted chars: 5649
+NO MATCH for casa
+NO MATCH for car
+NO MATCH for nim
+---
+82989a103d770353.pdf
+Extracted chars: 15721
+NO MATCH for casa
+NO MATCH for car
+NO MATCH for nim
+---
+9106eaa36187a7dd.pdf
+Extracted chars: 26125
+NO MATCH for casa
+NO MATCH for car
+NO MATCH for nim
+---
+9c72dafbc99b52a9.pdf
+Extracted chars: 1255
+NO MATCH for casa
+NO MATCH for car
+NO MATCH for nim
+---
+9e45de63e728ee17.pdf
+Extracted chars: 5689
+NO MATCH for casa
+NO MATCH for car
+NO MATCH for nim
+---
+b4dea65852eca341.pdf
+Extracted chars: 1168
+NO MATCH for casa
+NO MATCH for car
+NO MATCH for nim
+---
+b5e12c0be33898bf.pdf
+Extracted chars: 35782
+NO MATCH for casa
+NO MATCH for car
+NO MATCH for nim
+---
+ce1a461829634725.pdf
+Extracted chars: 80909
+NO MATCH for casa
+NO MATCH for car
+NO MATCH for nim
+---
+db221f4ca1eea761.pdf
+Extracted chars: 25341
+NO MATCH for casa
+NO MATCH for car
+NO MATCH for nim
+=== Scan complete: 2026-02-28T15:11:02.645096
+=== ICICI pattern scan started: 2026-02-28T23:54:25.978582
+---
+020348a860c54b70.pdf
+Extracted chars: 1811
+NO MATCH for casa
+NO MATCH for car
+NO MATCH for nim
+---
+28e6f0219ad508bf.pdf
+Extracted chars: 6214
+NO MATCH for casa
+FALLBACK car: 5,000 (near keywords ['Capital\\s+Adequacy', 'CRAR'])
+NO MATCH for nim
+---
+31b3e85e68e3f104.pdf
+Extracted chars: 1743
+NO MATCH for casa
+FALLBACK car: 24 (near keywords ['Capital\\s+Adequacy', 'CRAR'])
+NO MATCH for nim
+---
+3cf1b201cb84b802.pdf
+Extracted chars: 1251
+NO MATCH for casa
+FALLBACK car: 1 (near keywords ['Capital\\s+Adequacy', 'CRAR'])
+NO MATCH for nim
+---
+3cfe92e110c36c15.pdf
+Extracted chars: 5739
+NO MATCH for casa
+FALLBACK car: 1 (near keywords ['Capital\\s+Adequacy', 'CRAR'])
+NO MATCH for nim
+---
+4248e51b492eda04.pdf
+Extracted chars: 92516
+MATCH casa: 3.9
+MATCH car: 19.55
+FALLBACK nim: 10.3 (near keywords ['NIM', 'Net\\s+Interest\\s+Margin'])
+---
+45e7947dc56f4a8c.pdf
+Extracted chars: 39131
+NO MATCH for casa
+FALLBACK car: 18.4 (near keywords ['Capital\\s+Adequacy', 'CRAR'])
+FALLBACK nim: 21.5 (near keywords ['NIM', 'Net\\s+Interest\\s+Margin'])
+---
+5c84a22b1a5a1de5.pdf
+Extracted chars: 22070
+NO MATCH for casa
+NO MATCH for car
+NO MATCH for nim
+---
+64f36a6e329bc445.pdf
+Extracted chars: 20668
+MATCH casa: 39.0
+FALLBACK car: 16.46 (near keywords ['Capital\\s+Adequacy', 'CRAR'])
+FALLBACK nim: 364.45 (near keywords ['NIM', 'Net\\s+Interest\\s+Margin'])
+---
+7ac119582aa30607.pdf
+Extracted chars: 5649
+NO MATCH for casa
+FALLBACK car: 1 (near keywords ['Capital\\s+Adequacy', 'CRAR'])
+NO MATCH for nim
+---
+82989a103d770353.pdf
+Extracted chars: 15721
+NO MATCH for casa
+FALLBACK car: 50 (near keywords ['Capital\\s+Adequacy', 'CRAR'])
+NO MATCH for nim
+---
+9106eaa36187a7dd.pdf
+Extracted chars: 26125
+NO MATCH for casa
+FALLBACK car: 100 (near keywords ['Capital\\s+Adequacy', 'CRAR'])
+FALLBACK nim: 10,000 (near keywords ['NIM', 'Net\\s+Interest\\s+Margin'])
+---
+9c72dafbc99b52a9.pdf
+Extracted chars: 1255
+NO MATCH for casa
+NO MATCH for car
+NO MATCH for nim
+---
+9e45de63e728ee17.pdf
+Extracted chars: 5689
+NO MATCH for casa
+NO MATCH for car
+NO MATCH for nim
+---
+b4dea65852eca341.pdf
+Extracted chars: 1168
+NO MATCH for casa
+FALLBACK car: 1 (near keywords ['Capital\\s+Adequacy', 'CRAR'])
+NO MATCH for nim
+---
+b5e12c0be33898bf.pdf
+Extracted chars: 35782
+NO MATCH for casa
+FALLBACK car: 0.22 (near keywords ['Capital\\s+Adequacy', 'CRAR'])
+NO MATCH for nim
+---
+ce1a461829634725.pdf
+Extracted chars: 80909
+NO MATCH for casa
+FALLBACK car: 191 (near keywords ['Capital\\s+Adequacy', 'CRAR'])
+FALLBACK nim: 220 (near keywords ['NIM', 'Net\\s+Interest\\s+Margin'])
+---
+db221f4ca1eea761.pdf
+Extracted chars: 25341
+NO MATCH for casa
+FALLBACK car: 57 (near keywords ['Capital\\s+Adequacy', 'CRAR'])
+NO MATCH for nim
+=== Scan complete: 2026-02-28T23:55:21.400555
+=== ICICI pattern scan started: 2026-02-28T23:57:49.737946
+---
+020348a860c54b70.pdf
+Extracted chars: 1811
+NO MATCH for casa
+NO MATCH for car
+NO MATCH for nim
+---
+28e6f0219ad508bf.pdf
+Extracted chars: 6214
+NO MATCH for casa
+DISCARDED FALLBACK car: 5,000 (out of range)
+NO MATCH for nim
+---
+31b3e85e68e3f104.pdf
+Extracted chars: 1743
+NO MATCH for casa
+FALLBACK car: 24 (near keywords ['Capital\\s+Adequacy', 'CRAR'])
+NO MATCH for nim
+---
+3cf1b201cb84b802.pdf
+Extracted chars: 1251
+NO MATCH for casa
+FALLBACK car: 1 (near keywords ['Capital\\s+Adequacy', 'CRAR'])
+NO MATCH for nim
+---
+3cfe92e110c36c15.pdf
+Extracted chars: 5739
+NO MATCH for casa
+FALLBACK car: 1 (near keywords ['Capital\\s+Adequacy', 'CRAR'])
+NO MATCH for nim
+---
+4248e51b492eda04.pdf
+Extracted chars: 92516
+MATCH casa: 3.9
+MATCH car: 19.55
+FALLBACK nim: 10.3 (near keywords ['NIM', 'Net\\s+Interest\\s+Margin'])
+---
+45e7947dc56f4a8c.pdf
+Extracted chars: 39131
+NO MATCH for casa
+FALLBACK car: 18.4 (near keywords ['Capital\\s+Adequacy', 'CRAR'])
+DISCARDED FALLBACK nim: 21.5 (out of range)
+---
+5c84a22b1a5a1de5.pdf
+Extracted chars: 22070
+NO MATCH for casa
+NO MATCH for car
+NO MATCH for nim
+---
+64f36a6e329bc445.pdf
+Extracted chars: 20668
+MATCH casa: 39.0
+FALLBACK car: 16.46 (near keywords ['Capital\\s+Adequacy', 'CRAR'])
+DISCARDED FALLBACK nim: 364.45 (out of range)
+---
+7ac119582aa30607.pdf
+Extracted chars: 5649
+NO MATCH for casa
+FALLBACK car: 1 (near keywords ['Capital\\s+Adequacy', 'CRAR'])
+NO MATCH for nim
+---
+82989a103d770353.pdf
+Extracted chars: 15721
+NO MATCH for casa
+FALLBACK car: 50 (near keywords ['Capital\\s+Adequacy', 'CRAR'])
+NO MATCH for nim
+---
+9106eaa36187a7dd.pdf
+Extracted chars: 26125
+NO MATCH for casa
+FALLBACK car: 100 (near keywords ['Capital\\s+Adequacy', 'CRAR'])
+DISCARDED FALLBACK nim: 10,000 (out of range)
+---
+9c72dafbc99b52a9.pdf
+Extracted chars: 1255
+NO MATCH for casa
+NO MATCH for car
+NO MATCH for nim
+---
+9e45de63e728ee17.pdf
+Extracted chars: 5689
+NO MATCH for casa
+NO MATCH for car
+NO MATCH for nim
+---
+b4dea65852eca341.pdf
+Extracted chars: 1168
+NO MATCH for casa
+FALLBACK car: 1 (near keywords ['Capital\\s+Adequacy', 'CRAR'])
+NO MATCH for nim
+---
+b5e12c0be33898bf.pdf
+Extracted chars: 35782
+NO MATCH for casa
+FALLBACK car: 0.22 (near keywords ['Capital\\s+Adequacy', 'CRAR'])
+NO MATCH for nim
+---
+ce1a461829634725.pdf
+Extracted chars: 80909
+NO MATCH for casa
+DISCARDED FALLBACK car: 191 (out of range)
+DISCARDED FALLBACK nim: 220 (out of range)
+---
+db221f4ca1eea761.pdf
+Extracted chars: 25341
+NO MATCH for casa
+FALLBACK car: 57 (near keywords ['Capital\\s+Adequacy', 'CRAR'])
+NO MATCH for nim
+=== Scan complete: 2026-02-28T23:58:35.923971

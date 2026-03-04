@@ -1,0 +1,2 @@
+[console_scripts]
+bse-agent = nse_agent.cli:main

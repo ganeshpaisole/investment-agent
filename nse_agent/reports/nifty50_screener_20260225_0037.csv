@@ -1,0 +1,49 @@
+rank,ticker,name,sector_type,price,overall,fundamental,valuation,banking,management,sentiment,grade,iv,upside,signal,roe,roce,roa,pe,pb,market_cap_cr,rsi,return_3m,status,elapsed
+1,SUNPHARMA,Sun Pharmaceutical Industries ,PHARMA,1731.8,88,100,95,0,80,59,A,23665.85,1266.5,🟢 STRONG BUY — Significant discount to intrinsic value,16.9,18.92,0,38.011414,5.337451,415517.0,67.3,-3.4,done,12.0
+2,EICHERMOT,Eicher Motors Limited,CYCLICAL,7929.0,84,92,95,0,75,64,A,63247.24,697.7,🟢 STRONG BUY — Significant discount to intrinsic value,24.1,26.14,0,40.590767,9.846559,217504.0,72.4,10.1,done,12.1
+3,NESTLEIND,Nestlé India Limited,FMCG,1320.0,83,88,95,0,78,57,A,9544.97,623.1,🟢 STRONG BUY — Significant discount to intrinsic value,83.5,59.3,0,77.83019,57.401287,254537.0,58.2,3.9,done,13.9
+4,MARICO,Marico Limited,FMCG,810.35,83,92,95,0,72,62,A,6497.41,701.8,🟢 STRONG BUY — Significant discount to intrinsic value,41.3,36.6,0,61.297276,25.924562,104965.0,79.7,10.4,done,14.2
+5,HEROMOTOCO,Hero MotoCorp Limited,CYCLICAL,5511.0,83,92,95,0,77,55,A,91576.73,1561.7,🟢 STRONG BUY — Significant discount to intrinsic value,23.1,28.71,0,20.284895,5.2501016,110269.0,35.8,-8.4,done,12.1
+6,LTIM,LTIMindtree Limited,IT,4501.0,82,90,95,0,81,42,A,373951.83,8208.2,🟢 STRONG BUY — Significant discount to intrinsic value,20.97,26.33,0,28.059347,5.632523,133427.0,9.9,-23.6,done,13.6
+7,COALINDIA,Coal India Limited,CYCLICAL,430.95,82,78,95,0,79,72,B,1647.21,282.2,🟢 STRONG BUY — Significant discount to intrinsic value,38.9,24.37,0,8.896574,2.5190413,265583.0,51.4,15.7,done,11.9
+8,HINDUNILVR,Hindustan Unilever Limited,FMCG,2358.6,81,85,95,0,82,48,A,20853.54,784.1,🟢 STRONG BUY — Significant discount to intrinsic value,20.7,23.38,0,54.647823,11.37316,554255.0,48.6,-2.7,done,14.1
+9,DABUR,Dabur India Limited,FMCG,518.05,81,87,95,0,75,56,A,4555.34,779.3,🟢 STRONG BUY — Significant discount to intrinsic value,17.0,20.18,0,49.86044,8.389745,91886.0,62.6,0.2,done,14.1
+10,ONGC,Oil and Natural Gas Corporatio,CYCLICAL,276.5,81,79,95,0,79,66,B,583.44,111.0,🟢 STRONG BUY — Significant discount to intrinsic value,10.6,10.85,0,9.143518,0.9450116,347845.0,67.0,14.3,done,11.8
+11,BRITANNIA,Britannia Industries Limited,FMCG,6162.5,80,83,95,0,78,51,A,55163.56,795.1,🟢 STRONG BUY — Significant discount to intrinsic value,52.9,58.67,0,61.373367,39.758835,148435.0,67.0,4.8,done,11.4
+12,CIPLA,Cipla Limited,PHARMA,1326.7,80,90,95,0,71,50,A,27415.19,1966.4,🟢 STRONG BUY — Significant discount to intrinsic value,17.8,21.52,0,23.58997,3.2554576,107168.0,50.0,-12.9,done,12.5
+13,APOLLOHOSP,Apollo Hospitals Enterprise Li,PHARMA,7720.5,80,83,95,0,71,61,A,75229.32,874.4,🟢 STRONG BUY — Significant discount to intrinsic value,18.4,15.31,0,61.566986,12.2072315,111009.0,90.6,4.6,done,14.3
+14,ADANIPORTS,Adani Ports and Special Econom,CYCLICAL,1555.4,80,79,95,0,73,68,B,27040.91,1638.5,🟢 STRONG BUY — Significant discount to intrinsic value,19.41,13.74,0,26.947332,5.009921,358358.0,47.2,3.3,done,11.9
+15,WIPRO,Wipro Limited,IT,200.14,79,83,95,0,79,46,A,15019.42,7404.5,🟢 STRONG BUY — Significant discount to intrinsic value,15.2,18.42,0,15.858954,2.3377564,209671.0,9.5,-17.9,done,14.1
+16,TECHM,Tech Mahindra Limited,IT,1345.4,79,84,95,0,73,50,A,23564.89,1651.5,🟢 STRONG BUY — Significant discount to intrinsic value,14.6,18.78,0,25.793713,4.3346586,119136.0,9.8,-11.5,done,13.0
+17,INFY,Infosys Limited,IT,1275.5,78,86,85,0,77,48,A,1683.93,32.0,🟢 STRONG BUY — Significant discount to intrinsic value,32.68,36.24,0,18.265787,6.1600723,516028.0,8.4,-18.1,done,14.0
+18,TCS,Tata Consultancy Services Limi,IT,2573.7,77,90,75,0,82,44,A,3233.38,25.6,🟢 BUY — Trading below intrinsic value,42.63,62.02,0,19.506594,8.2036295,931187.0,13.2,-17.1,done,15.9
+19,DRREDDY,Dr. Reddy's Laboratories Limit,PHARMA,1300.2,76,78,95,0,65,58,B,67866.4,5119.7,🟢 STRONG BUY — Significant discount to intrinsic value,16.1,21.96,0,19.162859,2.9070988,108251.0,70.4,4.2,done,12.9
+20,DIVISLAB,Divi's Laboratories Limited,PHARMA,6255.5,76,86,95,0,64,44,A,44441.46,610.4,🟢 STRONG BUY — Significant discount to intrinsic value,15.4,18.85,0,67.16234,10.767671,166064.0,60.1,-3.9,done,12.7
+21,HCLTECH,HCL Technologies Limited,IT,1339.2,75,83,65,0,92,47,A,1575.41,17.6,🟢 BUY — Trading below intrinsic value,23.19,30.84,0,22.095364,4.9230566,362341.0,10.1,-16.6,done,13.3
+22,ITC,ITC Limited,FMCG,323.5,75,77,95,0,62,61,B,7573.83,2241.2,🟢 STRONG BUY — Significant discount to intrinsic value,27.3,36.57,0,19.88322,5.704763,405321.0,57.9,-17.9,done,13.4
+23,TATACONSUM,Tata Consumer Products Limited,FMCG,1178.0,75,74,95,0,69,55,B,8805.05,647.5,🟢 STRONG BUY — Significant discount to intrinsic value,7.01,7.92,0,79.166664,5.7345085,116570.0,60.2,-0.6,done,13.2
+24,POWERGRID,Power Grid Corporation of Indi,UTILITY,304.8,75,69,95,0,66,70,B,10123.08,3221.2,🟢 STRONG BUY — Significant discount to intrinsic value,17.0,12.29,0,19.550993,2.861139,283482.0,70.5,12.1,done,12.3
+25,BAJFINANCE,Bajaj Finance Limited,NBFC,1023.55,74,0,0,78,77,59,A,739.02,-27.8,🟢 EXCELLENT BANK,19.2,0,3.87,35.33138,6.16,636274.0,70.4,1.3,done,8.5
+26,BAJAJ-AUTO,Bajaj Auto Limited,CYCLICAL,9829.0,74,69,95,0,65,65,B,152642.79,1453.0,🟢 STRONG BUY — Significant discount to intrinsic value,22.8,24.9,0,30.91172,8.031646,274477.0,56.6,7.3,done,12.1
+27,BHARTIARTL,Bharti Airtel Limited,IT,1941.0,73,68,95,0,71,51,B,2903.91,49.6,🟢 STRONG BUY — Significant discount to intrinsic value,23.12,16.77,0,38.412827,9.472174,1182355.0,34.6,-8.7,done,11.9
+28,ICICIBANK,ICICI Bank Limited,BANKING,1384.8,70,0,0,75,67,63,A,969.81,-30.0,🟢 EXCELLENT BANK,16.8,0,2.0,18.920618,2.84,990927.0,41.2,0.7,done,9.5
+29,HDFCAMC,HDFC Asset Management Company ,BANKING,2681.4,69,0,0,70,74,60,B+,1077.84,-59.8,🟢 GOOD BANK,32.4,0,32.84,40.134712,14.83,114847.0,45.4,0.1,done,10.6
+30,TATASTEEL,Tata Steel Limited,CYCLICAL,209.13,67,51,95,0,56,74,C,960.75,359.4,🟢 STRONG BUY — Significant discount to intrinsic value,3.89,8.15,0,0.33088097,2.743732,260824.0,67.6,23.3,done,13.2
+31,SBIN,State Bank of India,BANKING,1223.3,65,0,0,63,64,69,B,1462.55,19.6,🟡 AVERAGE BANK,17.2,0,1.14,13.319905,1.91,1129182.0,87.2,24.3,done,9.9
+32,HDFCBANK,HDFC Bank Limited,BANKING,910.5,64,0,0,64,70,54,B,387.12,-57.5,🟡 AVERAGE BANK,14.02,0,1.55,20.328197,2.48,1401079.0,30.6,-9.3,done,9.3
+33,HINDALCO,Hindalco Industries Limited,CYCLICAL,922.85,63,64,55,0,71,62,C,965.68,4.6,🟡 FAIRLY VALUED — Accumulate on dips,14.0,12.8,0,12.765943,1.5190821,206338.0,40.1,15.2,done,11.6
+34,AXISBANK,Axis Bank Limited,BANKING,1387.6,62,0,0,62,59,68,B,535.25,-61.4,🟡 AVERAGE BANK,13.63,0,1.58,16.45831,2.08,431041.0,65.5,7.5,done,9.9
+35,KOTAKBANK,Kotak Mahindra Bank Limited,BANKING,427.7,61,0,0,63,58,64,B,207.58,-51.5,🟡 AVERAGE BANK,15.4,0,2.14,22.617664,2.53,425369.0,61.2,1.6,done,10.3
+36,MARUTI,Maruti Suzuki India Limited,CYCLICAL,14926.0,61,84,10,0,79,60,A,7837.96,-47.5,🔴 AVOID — Significantly overvalued vs intrinsic value,15.9,19.54,0,31.438381,4.704804,469277.0,45.5,-7.6,done,13.0
+37,ADANIENT,Adani Enterprises Limited,CYCLICAL,2183.0,59,38,95,0,57,53,D,20194.26,825.1,🟢 STRONG BUY — Significant discount to intrinsic value,9.82,10.19,0,19.728874,4.898903,282193.0,44.4,-5.7,done,12.0
+38,BAJAJFINSV,Bajaj Finserv Ltd.,BANKING,2043.3,58,0,0,49,72,55,C,368.89,-81.9,🟡 BELOW AVERAGE,13.4,0,1.48,34.10616,4.25,326417.0,56.2,-2.0,done,10.5
+39,NTPC,NTPC Limited,UTILITY,382.75,58,57,40,0,69,71,C,347.63,-9.2,🟠 HOLD — Slightly above intrinsic value,12.1,9.77,0,21.193245,1.9309256,371140.0,69.1,18.3,done,11.9
+40,BANDHANBNK,Bandhan Bank Limited,BANKING,180.55,51,0,0,32,66,67,F,51.73,-71.3,🔴 AVOID,4.07,0,0.53,28.888,1.18,29086.0,82.3,19.4,done,8.2
+41,INDUSINDBK,IndusInd Bank Limited,BANKING,931.4,47,0,0,30,59,64,F,417.71,-55.2,🔴 AVOID,4.02,0,-0.37,0,1.11,72563.0,54.8,9.5,done,8.2
+42,LT,Larsen & Toubro Limited,CYCLICAL,4259.2,47,60,10,0,57,60,C,2113.51,-50.4,🔴 AVOID — Significantly overvalued vs intrinsic value,16.6,15.16,0,33.3584,5.779191,585900.0,63.2,4.9,done,11.9
+43,RELIANCE,Reliance Industries Limited,CYCLICAL,1428.8,47,58,10,0,68,48,C,1101.12,-22.9,🔴 AVOID — Significantly overvalued vs intrinsic value,8.4,8.56,0,23.213648,2.20453,1933520.0,42.8,-9.0,done,12.5
+44,SBILIFE,SBI Life Insurance Company Lim,INSURANCE,2082.9,46,0,0,27,62,61,F,568.87,-72.7,🔴 AVOID,13.92,0,0,84.39627,10.984485,208879.0,58.5,2.7,done,9.6
+45,HDFCLIFE,HDFC Life Insurance Company Li,INSURANCE,734.75,45,0,0,27,61,57,F,244.95,-66.7,🔴 AVOID,11.32,0,0,83.87557,8.9987755,158491.0,56.1,-6.7,done,9.5
+46,JSWSTEEL,JSW Steel Limited,CYCLICAL,1254.5,42,46,10,0,65,51,D,415.66,-66.9,🔴 AVOID — Significantly overvalued vs intrinsic value,4.94,7.18,0,41.280025,3.686269,306457.0,60.7,8.7,done,11.8
+47,M&M,Mahindra & Mahindra Limited,CYCLICAL,3433.2,41,52,10,0,46,59,C,2641.44,-23.1,🔴 AVOID — Significantly overvalued vs intrinsic value,18.0,14.92,0,24.591362,4.6269913,412146.0,35.9,-6.9,done,13.6
+ERR,TATAMOTORS,TATAMOTORS,UNKNOWN,0,0,0,0,0,0,0,—,0,0,—,0,0,0,0,0,0.0,0,0,error,8.2

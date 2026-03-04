@@ -1,0 +1,8 @@
+rank,ticker,name,sector_type,price,overall,fundamental,valuation,banking,management,sentiment,grade,iv,upside,signal,roe,roce,roa,pe,pb,market_cap_cr,rsi,return_3m,status,elapsed
+1,ICICIBANK,ICICI Bank Limited,BANKING,1384.8,70,0,0,75,67,63,A,969.81,-30.0,🟢 EXCELLENT BANK,16.8,0,2.0,18.920618,2.84,990927.0,41.2,0.7,done,6.0
+2,SBIN,State Bank of India,BANKING,1223.3,65,0,0,63,64,69,B,1462.55,19.6,🟡 AVERAGE BANK,17.2,0,1.14,13.319905,1.91,1129182.0,87.2,24.3,done,5.9
+3,HDFCBANK,HDFC Bank Limited,BANKING,910.5,64,0,0,64,70,54,B,387.12,-57.5,🟡 AVERAGE BANK,14.02,0,1.55,20.328197,2.48,1401079.0,30.6,-9.3,done,5.9
+4,AXISBANK,Axis Bank Limited,BANKING,1387.6,62,0,0,62,59,68,B,535.25,-61.4,🟡 AVERAGE BANK,13.63,0,1.58,16.45831,2.08,431041.0,65.5,7.5,done,5.1
+5,KOTAKBANK,Kotak Mahindra Bank Limited,BANKING,427.7,61,0,0,63,58,64,B,207.58,-51.5,🟡 AVERAGE BANK,15.4,0,2.14,22.617664,2.53,425369.0,61.2,1.6,done,6.6
+6,BANDHANBNK,Bandhan Bank Limited,BANKING,180.55,51,0,0,32,66,67,F,51.73,-71.3,🔴 AVOID,4.07,0,0.53,28.888,1.18,29086.0,82.3,19.4,done,5.4
+7,INDUSINDBK,IndusInd Bank Limited,BANKING,931.4,47,0,0,30,59,64,F,417.71,-55.2,🔴 AVOID,4.02,0,-0.37,0,1.11,72563.0,54.8,9.5,done,5.8

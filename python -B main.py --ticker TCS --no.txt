@@ -1,0 +1,3 @@
+python -B main.py --ticker TCS --no-gpt --mode all
+
+IT, FMCG, Auto, Pharma, Chemicals, Conglomerates

@@ -1,0 +1,60 @@
+NSE STOCK SCREENER — NIFTY 50 REPORT
+Generated: 2026-02-25 00:46
+Total time: 575s | Stocks analyzed: 47 | Errors: 1
+============================================================
+
+🟢 STRONG BUY CANDIDATES (Overall ≥70, Upside ≥15%)
+  SUNPHARMA    Overall: 88/100  Upside:+1266%  ROE:16.9%  RSI:67
+  EICHERMOT    Overall: 84/100  Upside:+698%  ROE:24.1%  RSI:72
+  NESTLEIND    Overall: 83/100  Upside:+623%  ROE:83.5%  RSI:58
+  MARICO       Overall: 83/100  Upside:+702%  ROE:41.3%  RSI:80
+  HEROMOTOCO   Overall: 83/100  Upside:+1562%  ROE:23.1%  RSI:36
+  LTIM         Overall: 82/100  Upside:+8208%  ROE:21.0%  RSI:10
+  COALINDIA    Overall: 82/100  Upside:+282%  ROE:38.9%  RSI:51
+  HINDUNILVR   Overall: 81/100  Upside:+784%  ROE:20.7%  RSI:49
+  DABUR        Overall: 81/100  Upside:+779%  ROE:17.0%  RSI:63
+  ONGC         Overall: 81/100  Upside:+111%  ROE:10.6%  RSI:67
+  BRITANNIA    Overall: 80/100  Upside:+795%  ROE:52.9%  RSI:67
+  CIPLA        Overall: 80/100  Upside:+1966%  ROE:17.8%  RSI:50
+  APOLLOHOSP   Overall: 80/100  Upside:+874%  ROE:18.4%  RSI:91
+  ADANIPORTS   Overall: 80/100  Upside:+1638%  ROE:19.4%  RSI:47
+  WIPRO        Overall: 79/100  Upside:+7404%  ROE:15.2%  RSI:10
+  TECHM        Overall: 79/100  Upside:+1652%  ROE:14.6%  RSI:10
+  INFY         Overall: 78/100  Upside:+32%  ROE:32.7%  RSI:8
+  TCS          Overall: 77/100  Upside:+26%  ROE:42.6%  RSI:13
+  DRREDDY      Overall: 76/100  Upside:+5120%  ROE:16.1%  RSI:70
+  DIVISLAB     Overall: 76/100  Upside:+610%  ROE:15.4%  RSI:60
+  HCLTECH      Overall: 75/100  Upside:+18%  ROE:23.2%  RSI:10
+  ITC          Overall: 75/100  Upside:+2241%  ROE:27.3%  RSI:58
+  TATACONSUM   Overall: 75/100  Upside:+648%  ROE:7.0%  RSI:60
+  POWERGRID    Overall: 75/100  Upside:+3221%  ROE:17.0%  RSI:70
+  BAJAJ-AUTO   Overall: 74/100  Upside:+1453%  ROE:22.8%  RSI:57
+  BHARTIARTL   Overall: 73/100  Upside:+50%  ROE:23.1%  RSI:35
+
+🟢 BUY / ACCUMULATE (Overall ≥60, Upside ≥0%)
+  TATASTEEL    Overall: 67/100  Upside:+359%  ROE:3.9%  RSI:68
+  SBIN         Overall: 65/100  Upside:+20%  ROE:17.2%  RSI:87
+  HINDALCO     Overall: 63/100  Upside:+5%  ROE:14.0%  RSI:40
+
+⚠️  CAUTION / AVOID (Overall <50)
+  INDUSINDBK   Overall: 47/100  Upside:-55%  Grade:F
+  LT           Overall: 47/100  Upside:-50%  Grade:C
+  RELIANCE     Overall: 47/100  Upside:-23%  Grade:C
+  SBILIFE      Overall: 46/100  Upside:-73%  Grade:F
+  HDFCLIFE     Overall: 45/100  Upside:-67%  Grade:F
+  JSWSTEEL     Overall: 42/100  Upside:-67%  Grade:D
+  M&M          Overall: 41/100  Upside:-23%  Grade:C
+
+📉 OVERSOLD WATCH (RSI <30 — contrarian opportunity)
+  LTIM         RSI:10  3M:-23.6%  Overall: 82/100  Upside:+8208%
+  WIPRO        RSI:10  3M:-17.9%  Overall: 79/100  Upside:+7404%
+  TECHM        RSI:10  3M:-11.5%  Overall: 79/100  Upside:+1652%
+  INFY         RSI:8  3M:-18.1%  Overall: 78/100  Upside:+32%
+  TCS          RSI:13  3M:-17.1%  Overall: 77/100  Upside:+26%
+  HCLTECH      RSI:10  3M:-16.6%  Overall: 75/100  Upside:+18%
+
+❌ ERRORS (1 stocks failed)
+  TATAMOTORS   float division by zero
+
+============================================================
+Not SEBI-registered investment advice. Do your own research.
