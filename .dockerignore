@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+proposal_agent/.venv
+.venv
+venv
+
+# Git
+.git
+
+# Packaging
+dist/
+build/
+*.egg-info
+
+# Environment files
+.env
+.env.*
+
+# Data and caches
+data/
+proposal_agent/data/
