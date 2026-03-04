@@ -1,0 +1,568 @@
+# ============================================================
+# agents/banking_agent.py — VERSION 1.0
+# Specialized analysis for Banks and NBFCs
+#
+# Standard DCF/FCF is WRONG for banks. Banks:
+#   - "Borrow short, lend long" — debt IS their raw material
+#   - D/E ratio meaningless (banks are supposed to be leveraged)
+#   - FCF concept doesn't apply (loans = working capital)
+#   - Correct metrics: NIM, NPA, CAR, CASA, ROA, ROE
+#
+# Valuation methods for banks:
+#   - P/B ratio vs historical average (most reliable)
+#   - P/ABV (Price to Adjusted Book Value — excluding NPAs)
+#   - DDM (banks are natural dividend payers)
+#   - Excess Returns Model (ROE - Cost of Equity)
+# ============================================================
+
+import numpy as np
+import pandas as pd
+from loguru import logger
+from utils.data_fetcher import NSEDataFetcher
+from utils.ratio_calculator import RatioCalculator
+
+
+class BankingAgent:
+    """
+    Specialized analysis agent for Banks and NBFCs.
+    Replaces Fundamental + Valuation agents for financial sector stocks.
+    """
+
+    INDIA_RISK_FREE_RATE      = 6.8
+    INDIA_EQUITY_RISK_PREMIUM = 5.5
+    MARGIN_OF_SAFETY_TARGET   = 30
+
+    def __init__(self, ticker: str):
+        self.ticker = ticker.upper().strip()
+        logger.info(f"\n{'🏦'*20}")
+        logger.info(f"  BANKING ANALYSIS ENGINE: {self.ticker}")
+        logger.info(f"{'🏦'*20}")
+
+    def _detect_sector_type(self, fetcher) -> str:
+        """Quick sector detection to tell data_fetcher which BSE metrics to fetch."""
+        try:
+            info     = fetcher.get_stock_info()
+            industry = (info.get("industry", "") or "").lower()
+            if "insurance" in industry:
+                return "INSURANCE"
+            if any(x in industry for x in ["credit", "loan", "finance", "nbfc"]):
+                return "NBFC"
+            return "BANKING"
+        except:
+            return "BANKING"
+
+    def _fetch_data(self) -> tuple:
+        fetcher     = NSEDataFetcher(self.ticker)
+        sector_type = self._detect_sector_type(fetcher)
+        raw_data    = fetcher.get_all_data(sector_type=sector_type)
+        calc        = RatioCalculator(raw_data)
+        ratios      = calc.calculate_all_ratios()
+        return raw_data, ratios
+
+    # ============================================================
+    # BANKING RATIOS (extracted from Yahoo Finance data)
+    # ============================================================
+
+    def _get_banking_ratios(self, raw_data: dict, ratios: dict) -> dict:
+        """Extract bank-specific metrics from available data."""
+        info   = raw_data.get("info", {})
+        income = raw_data.get("income_statement", pd.DataFrame())
+        bal    = raw_data.get("balance_sheet", pd.DataFrame())
+
+        banking = {}
+
+        # ── Net Interest Margin (NIM) ─────────────────────────
+        # NIM = Net Interest Income / Average Earning Assets
+        # Yahoo doesn't directly provide NIM — estimate from margins
+        net_margin    = ratios["profitability"]["net_margin"]
+        ebitda_margin = ratios["profitability"]["ebitda_margin"]
+        banking["net_margin"] = net_margin
+        # For banks: NIM typically 2.5-5% for Indian banks
+        # Use profit margin as proxy (higher = better NIM management)
+        banking["nim_proxy"] = round(ebitda_margin * 0.4, 2)  # rough estimate
+
+        # ── Return on Assets (ROA) ────────────────────────────
+        # Use balance sheet Total Assets (info.totalAssets unreliable for banks)
+        total_assets = 0
+        if not bal.empty:
+            for key in ["Total Assets", "TotalAssets"]:
+                if key in bal.index:
+                    try:
+                        v = bal.loc[key].iloc[0]
+                        if pd.notna(v) and float(v) > 0:
+                            total_assets = float(v); break
+                    except: pass
+        if total_assets == 0:
+            total_assets = info.get("totalAssets", 0) or 0
+
+        net_income = info.get("netIncomeToCommon", 0) or 0
+        if net_income == 0 and not income.empty:
+            for key in ["Net Income", "Net Income Common Stockholders"]:
+                if key in income.index:
+                    try:
+                        v = income.loc[key].iloc[0]
+                        if pd.notna(v): net_income = float(v); break
+                    except: pass
+
+        roa = (net_income / total_assets * 100) if total_assets > 0 else 0
+        banking["roa"] = round(roa, 2)
+
+        # ── Return on Equity (ROE) ────────────────────────────
+        # Target: >15% for good banks, >20% for top NBFCs
+        # Yahoo Finance often returns 0 — compute from EPS / Book Value
+        roe = ratios["profitability"]["roe"]
+        if roe == 0:
+            bv  = info.get("bookValue", 0) or 0
+            eps = info.get("trailingEps", 0) or 0
+            if bv > 0 and eps > 0:
+                roe = round(eps / bv * 100, 2)
+            elif not income.empty and not bal.empty:
+                try:
+                    ni = 0
+                    for k in ["Net Income", "Net Income Common Stockholders"]:
+                        if k in income.index:
+                            v = income.loc[k].iloc[0]
+                            if pd.notna(v): ni = float(v); break
+                    eq = 0
+                    for k in ["Stockholders Equity", "Total Equity Gross Minority Interest",
+                              "Common Stock Equity"]:
+                        if k in bal.index:
+                            v = bal.loc[k].iloc[0]
+                            if pd.notna(v) and float(v) > 0: eq = float(v); break
+                    if ni > 0 and eq > 0:
+                        roe = round(ni / eq * 100, 2)
+                except: pass
+        banking["roe"] = round(roe, 2)
+
+        # ── Price to Book Value ───────────────────────────────
+        pb_ratio  = info.get("priceToBook", 0) or 0
+        bv_ps     = info.get("bookValue", 0) or 0
+        banking["pb_ratio"] = round(pb_ratio, 2)
+        banking["bv_ps"]    = round(bv_ps, 2)
+
+        # ── Gross NPA / Net NPA (from screener if available) ──
+        screener   = raw_data.get("screener_data", {})
+        gnpa_pct   = 0.0
+        nnpa_pct   = 0.0
+        for key, val in screener.items():
+            k = key.lower()
+            if "gnpa" in k or "gross npa" in k:
+                try: gnpa_pct = float(str(val).replace("%","").strip())
+                except: pass
+            if "nnpa" in k or "net npa" in k:
+                try: nnpa_pct = float(str(val).replace("%","").strip())
+                except: pass
+        banking["gnpa_pct"] = gnpa_pct
+        banking["nnpa_pct"] = nnpa_pct
+
+        # ── BSE filing data — highest priority source ────────
+        bse = raw_data.get("bse_data", {})
+        if bse:
+            n_bse = len([k for k in bse if k not in ("source","date")])
+            if n_bse > 0:
+                logger.info(f"📄 BSE data available: {n_bse} metrics ({bse.get('source','')})")
+
+        # ── Capital Adequacy Ratio (CAR) ──────────────────────
+        # Priority: BSE PDF > Screener.in > 0
+        car = bse.get("car", 0.0)
+        if not car:
+            for key, val in screener.items():
+                if "capital adequacy" in key.lower() or "car" == key.lower().strip():
+                    try: car = float(str(val).replace("%","").strip()); break
+                    except: pass
+        banking["car"] = round(car, 2)
+        if car: logger.info(f"  ✅ CAR: {car:.1f}% (BSE)" if bse.get("car") else f"  ✅ CAR: {car:.1f}% (Screener)")
+
+        # ── CASA Ratio ────────────────────────────────────────
+        # Priority: BSE PDF > Screener.in > 0
+        casa = bse.get("casa", 0.0)
+        if not casa:
+            for key, val in screener.items():
+                if "casa" in key.lower():
+                    try: casa = float(str(val).replace("%","").strip()); break
+                    except: pass
+        banking["casa_ratio"] = round(casa, 2)
+        if casa: logger.info(f"  ✅ CASA: {casa:.1f}% (BSE)" if bse.get("casa") else f"  ✅ CASA: {casa:.1f}% (Screener)")
+
+        # ── NIM (Net Interest Margin) — from BSE if available ─
+        nim = bse.get("nim", 0.0)
+        banking["nim"] = round(nim, 2)
+        if nim: logger.info(f"  ✅ NIM: {nim:.1f}% (BSE)")
+
+        # ── Credit Cost — from BSE ────────────────────────────
+        banking["credit_cost"] = round(bse.get("credit_cost", 0.0), 2)
+
+        # ── Override NPA with BSE data if better ─────────────
+        if bse.get("gnpa") and not banking.get("gnpa_pct"):
+            banking["gnpa_pct"] = bse["gnpa"]
+        if bse.get("nnpa") and not banking.get("nnpa_pct"):
+            banking["nnpa_pct"] = bse["nnpa"]
+
+        # ── Dividend Data ─────────────────────────────────────
+        banking["dividend_yield"]  = ratios["dividend"]["dividend_yield"]
+        banking["dividend_rate"]   = ratios["dividend"]["dividend_rate"]
+        banking["payout_ratio"]    = ratios["dividend"]["payout_ratio"]
+
+        # ── Growth ────────────────────────────────────────────
+        banking["revenue_cagr_3yr"] = ratios["growth"]["revenue_cagr_3yr"]
+        banking["eps_growth"]       = ratios["growth"]["earnings_growth_yoy"]
+
+        # ── PE Ratio ──────────────────────────────────────────
+        banking["pe_ratio"] = info.get("trailingPE", 0) or 0
+        banking["eps"]      = info.get("trailingEps", 0) or 0
+
+        return banking
+
+    # ============================================================
+    # SCORING — 100 points (Bank-specific framework)
+    # ============================================================
+
+    def _score_asset_quality(self, banking: dict) -> dict:
+        """Asset Quality (30 pts) — Are loans being repaid?"""
+        logger.info("🔢 Scoring Asset Quality...")
+        score = 0; flags = []; positives = []
+
+        # NPA scoring (if data available from Screener)
+        gnpa = banking["gnpa_pct"]
+        nnpa = banking["nnpa_pct"]
+
+        if gnpa > 0:
+            if gnpa <= 1.5:
+                score += 15
+                positives.append(f"✅ Excellent asset quality: GNPA {gnpa:.1f}% (world-class)")
+            elif gnpa <= 3.0:
+                score += 10
+                positives.append(f"✅ Good asset quality: GNPA {gnpa:.1f}%")
+            elif gnpa <= 5.0:
+                score += 5
+                flags.append(f"⚠️ Elevated GNPA {gnpa:.1f}% — monitor stress loans")
+            else:
+                flags.append(f"🔴 High GNPA {gnpa:.1f}% — significant bad loans")
+
+            if nnpa <= 0.5:
+                score += 10
+                positives.append(f"✅ Strong provisioning: NNPA {nnpa:.1f}%")
+            elif nnpa <= 1.5:
+                score += 7
+                positives.append(f"✅ Adequate provisioning: NNPA {nnpa:.1f}%")
+            elif nnpa <= 3.0:
+                score += 3
+                flags.append(f"⚠️ High NNPA {nnpa:.1f}% — insufficient provisions")
+            else:
+                flags.append(f"🔴 Very high NNPA {nnpa:.1f}% — serious provisioning gap")
+        else:
+            # No NPA data — use ROA as proxy for asset quality
+            roa = banking["roa"]
+            if roa >= 1.5:
+                score += 20
+                positives.append(f"✅ Strong ROA {roa:.2f}% suggests good asset quality")
+            elif roa >= 1.0:
+                score += 14
+                positives.append(f"✅ Good ROA {roa:.2f}%")
+            elif roa >= 0.5:
+                score += 8
+                flags.append(f"⚠️ Low ROA {roa:.2f}% — possible NPA stress")
+            else:
+                flags.append(f"🔴 Very low ROA {roa:.2f}% — significant asset quality concerns")
+
+            # CAR check
+            car = banking["car"]
+            if car >= 16:
+                score += 10
+                positives.append(f"✅ Strong Capital Adequacy {car:.1f}% (RBI minimum 11.5%)")
+            elif car >= 13:
+                score += 7
+                positives.append(f"✅ Adequate CAR {car:.1f}%")
+            elif car > 0:
+                score += 3
+                flags.append(f"⚠️ CAR {car:.1f}% — near regulatory minimum")
+            else:
+                score += 5  # no data, neutral
+                positives.append("🟡 CAR data not available — check annual report")
+
+        return {"score": min(score,30), "max": 30, "flags": flags, "positives": positives}
+
+    def _score_profitability(self, banking: dict) -> dict:
+        """Profitability (25 pts) — How efficiently does it earn?"""
+        logger.info("🔢 Scoring Banking Profitability...")
+        score = 0; flags = []; positives = []
+
+        # ROA — King metric for banks
+        roa = banking["roa"]
+        if roa >= 2.0:
+            score += 15
+            positives.append(f"✅ Exceptional ROA {roa:.2f}% — top-tier bank efficiency")
+        elif roa >= 1.5:
+            score += 12
+            positives.append(f"✅ Excellent ROA {roa:.2f}%")
+        elif roa >= 1.0:
+            score += 8
+            positives.append(f"✅ Good ROA {roa:.2f}% (industry benchmark)")
+        elif roa >= 0.5:
+            score += 4
+            flags.append(f"⚠️ Below-average ROA {roa:.2f}%")
+        else:
+            flags.append(f"🔴 Poor ROA {roa:.2f}% — inefficient asset utilization")
+
+        # ROE
+        roe = banking["roe"]
+        if roe >= 18:
+            score += 10
+            positives.append(f"✅ Excellent ROE {roe:.1f}% — strong shareholder returns")
+        elif roe >= 15:
+            score += 8
+            positives.append(f"✅ Good ROE {roe:.1f}%")
+        elif roe >= 10:
+            score += 5
+            positives.append(f"🟡 Adequate ROE {roe:.1f}%")
+        else:
+            flags.append(f"⚠️ Low ROE {roe:.1f}%")
+
+        return {"score": min(score,25), "max": 25, "flags": flags, "positives": positives}
+
+    def _score_liability_franchise(self, banking: dict) -> dict:
+        """Liability Franchise (25 pts) — Cost of funds + CASA + CAR"""
+        logger.info("🔢 Scoring Liability Franchise...")
+        score = 0; flags = []; positives = []
+
+        # CASA ratio
+        casa = banking["casa_ratio"]
+        if casa >= 45:
+            score += 12
+            positives.append(f"✅ Excellent CASA {casa:.1f}% — very low cost of funds")
+        elif casa >= 35:
+            score += 9
+            positives.append(f"✅ Good CASA {casa:.1f}%")
+        elif casa >= 25:
+            score += 5
+            positives.append(f"🟡 Average CASA {casa:.1f}%")
+        elif casa > 0:
+            flags.append(f"⚠️ Low CASA {casa:.1f}% — high cost of funds")
+        else:
+            score += 5  # no data
+            positives.append("🟡 CASA data not available — check investor presentation")
+
+        # Revenue growth (loan book expansion proxy)
+        rev_growth = banking["revenue_cagr_3yr"]
+        if rev_growth >= 20:
+            score += 8
+            positives.append(f"✅ Strong business growth {rev_growth:.1f}% CAGR")
+        elif rev_growth >= 12:
+            score += 6
+            positives.append(f"✅ Good growth {rev_growth:.1f}% CAGR")
+        elif rev_growth >= 5:
+            score += 3
+            positives.append(f"🟡 Moderate growth {rev_growth:.1f}% CAGR")
+        else:
+            flags.append(f"⚠️ Slow growth {rev_growth:.1f}% CAGR")
+
+        # Net margin (efficiency proxy for banks)
+        nm = banking["net_margin"]
+        if nm >= 20:
+            score += 5
+            positives.append(f"✅ Strong net margin {nm:.1f}%")
+        elif nm >= 12:
+            score += 3
+            positives.append(f"🟡 Adequate net margin {nm:.1f}%")
+        else:
+            flags.append(f"⚠️ Low net margin {nm:.1f}%")
+
+        return {"score": min(score,25), "max": 25, "flags": flags, "positives": positives}
+
+    def _score_valuation(self, raw_data: dict, banking: dict) -> dict:
+        """Valuation (20 pts) — P/B vs historical, DDM"""
+        logger.info("🔢 Scoring Banking Valuation...")
+        info  = raw_data.get("info", {})
+        score = 0; flags = []; positives = []
+        details = {}
+
+        current_price = raw_data.get("current_price", 0)
+        pb     = banking["pb_ratio"]
+        bv_ps  = banking["bv_ps"]
+        roe    = banking["roe"]
+
+        # Justified P/B = (ROE - g) / (Ke - g)  — Gordon Growth Model
+        # g = sustainable growth = ROE × retention ratio (typically 60%)
+        # For high-growth NBFCs: cap g at 14% to stay realistic
+        ke = (self.INDIA_RISK_FREE_RATE + 1.0 * self.INDIA_EQUITY_RISK_PREMIUM) / 100
+        if roe > 0:
+            g = min(roe / 100 * 0.60, 0.14)   # 60% retention, max 14%
+            justified_pb = (roe/100 - g) / (ke - g) if ke > g else 2.0
+        else:
+            g = 0.08   # fallback
+            justified_pb = 1.0
+        justified_pb = max(0.5, min(justified_pb, 7.0))  # cap 0.5x - 7x
+
+        fair_value_pb = justified_pb * bv_ps if bv_ps > 0 else 0
+        details["justified_pb"]  = round(justified_pb, 2)
+        details["fair_value_pb"] = round(fair_value_pb, 2)
+        details["current_pb"]    = pb
+        details["bv_ps"]         = bv_ps
+
+        if pb > 0 and justified_pb > 0:
+            pb_discount = (justified_pb - pb) / justified_pb * 100
+            details["pb_discount"] = round(pb_discount, 1)
+
+            if pb_discount >= 20:
+                score += 12
+                positives.append(f"✅ Trading at {pb:.1f}x P/B vs justified {justified_pb:.1f}x — significant discount")
+            elif pb_discount >= 5:
+                score += 8
+                positives.append(f"✅ Fair value: {pb:.1f}x P/B vs justified {justified_pb:.1f}x")
+            elif pb_discount >= -10:
+                score += 5
+                positives.append(f"🟡 Fairly valued: {pb:.1f}x P/B (justified {justified_pb:.1f}x)")
+            else:
+                score += 2
+                flags.append(f"⚠️ Premium to justified P/B: {pb:.1f}x vs {justified_pb:.1f}x — expensive")
+
+        # DDM valuation for banks
+        div_rate = banking["dividend_rate"]
+        if div_rate > 0:
+            g_ddm  = min(roe/100 * 0.4, 0.10)  # 40% retention, max 10% growth
+            ke_ddm = ke
+            if ke_ddm > g_ddm:
+                ddm_value = div_rate * (1 + g_ddm) / (ke_ddm - g_ddm)
+                details["ddm_value"] = round(ddm_value, 2)
+                ddm_upside = (ddm_value - current_price) / current_price * 100
+                if ddm_upside >= 15:
+                    score += 8
+                    positives.append(f"✅ DDM value ₹{ddm_value:.0f} (+{ddm_upside:.0f}% upside)")
+                elif ddm_upside >= 0:
+                    score += 5
+                    positives.append(f"🟡 DDM value ₹{ddm_value:.0f} (fairly valued)")
+                else:
+                    score += 2
+                    flags.append(f"⚠️ DDM value ₹{ddm_value:.0f} ({ddm_upside:.0f}% downside)")
+        else:
+            score += 3
+            positives.append("🟡 No dividend — growth-stage bank (acceptable)")
+
+        return {
+            "score": min(score,20), "max": 20,
+            "flags": flags, "positives": positives, "details": details
+        }
+
+    # ============================================================
+    # BUFFETT BANKING CHECKLIST
+    # ============================================================
+
+    def _buffett_banking_checklist(self, banking: dict) -> list:
+        checks = []
+
+        checks.append({
+            "question": "Does the bank earn strong returns on assets (ROA > 1%)?",
+            "pass":     banking["roa"] >= 1.0,
+            "detail":   f"ROA = {banking['roa']:.2f}% {'✅' if banking['roa'] >= 1.0 else '❌'}"
+        })
+        checks.append({
+            "question": "Is asset quality strong (GNPA < 3%)?",
+            "pass":     0 < banking["gnpa_pct"] < 3.0 or banking["gnpa_pct"] == 0,
+            "detail":   f"GNPA = {banking['gnpa_pct']:.1f}% {'✅' if banking['gnpa_pct'] < 3 else '❌'}"
+                        if banking["gnpa_pct"] > 0 else "GNPA data N/A — check annual report"
+        })
+        checks.append({
+            "question": "Is ROE consistently above 15%?",
+            "pass":     banking["roe"] >= 15,
+            "detail":   f"ROE = {banking['roe']:.1f}% {'✅' if banking['roe'] >= 15 else '❌'}"
+        })
+        checks.append({
+            "question": "Is the bank growing revenue at >10% CAGR?",
+            "pass":     banking["revenue_cagr_3yr"] >= 10,
+            "detail":   f"Revenue CAGR = {banking['revenue_cagr_3yr']:.1f}% {'✅' if banking['revenue_cagr_3yr'] >= 10 else '❌'}"
+        })
+        checks.append({
+            "question": "Is CASA ratio healthy (>35%)?",
+            "pass":     banking["casa_ratio"] >= 35 or banking["casa_ratio"] == 0,
+            "detail":   f"CASA = {banking['casa_ratio']:.1f}% {'✅' if banking['casa_ratio'] >= 35 else '❌'}"
+                        if banking["casa_ratio"] > 0 else "CASA data N/A"
+        })
+        checks.append({
+            "question": "Is the bank trading at or below justified P/B?",
+            "pass":     banking["pb_ratio"] <= 3.0,
+            "detail":   f"P/B = {banking['pb_ratio']:.1f}x {'✅' if banking['pb_ratio'] <= 3.0 else '❌'}"
+        })
+
+        return checks
+
+    # ============================================================
+    # GRADE + RECOMMENDATION
+    # ============================================================
+
+    def _get_grade(self, score: int) -> tuple:
+        if score >= 85:   return "A+", "🟢 EXCEPTIONAL BANK"
+        elif score >= 75: return "A",  "🟢 EXCELLENT BANK"
+        elif score >= 65: return "B+", "🟢 GOOD BANK"
+        elif score >= 55: return "B",  "🟡 AVERAGE BANK"
+        elif score >= 45: return "C",  "🟡 BELOW AVERAGE"
+        elif score >= 35: return "D",  "🟠 WEAK BANK"
+        else:             return "F",  "🔴 AVOID"
+
+    # ============================================================
+    # MAIN ANALYZE METHOD
+    # ============================================================
+
+    def analyze(self) -> dict:
+        raw_data, ratios = self._fetch_data()
+        info             = raw_data.get("info", {})
+        current_price    = raw_data.get("current_price", 0)
+
+        banking = self._get_banking_ratios(raw_data, ratios)
+
+        asset_score   = self._score_asset_quality(banking)
+        profit_score  = self._score_profitability(banking)
+        liab_score    = self._score_liability_franchise(banking)
+        val_score     = self._score_valuation(raw_data, banking)
+
+        total_score = (
+            asset_score["score"] + profit_score["score"] +
+            liab_score["score"]  + val_score["score"]
+        )
+
+        grade, verdict = self._get_grade(total_score)
+        checks         = self._buffett_banking_checklist(banking)
+        buffett_pass   = sum(1 for c in checks if c["pass"])
+
+        all_flags     = []
+        all_positives = []
+        for s in [asset_score, profit_score, liab_score, val_score]:
+            all_flags.extend(s["flags"])
+            all_positives.extend(s["positives"])
+
+        # Valuation summary
+        vd = val_score.get("details", {})
+        iv_pb  = vd.get("fair_value_pb", 0)
+        iv_ddm = vd.get("ddm_value", 0)
+        iv     = (iv_pb * 0.6 + iv_ddm * 0.4) if iv_ddm > 0 else iv_pb
+        upside = ((iv - current_price) / current_price * 100) if current_price > 0 and iv > 0 else 0
+
+        result = {
+            "ticker":          self.ticker,
+            "company_name":    info.get("longName", self.ticker),
+            "sector":          info.get("sector", "Financial Services"),
+            "industry":        info.get("industry", "Banking"),
+            "total_score":     total_score,
+            "grade":           grade,
+            "verdict":         verdict,
+            "scores": {
+                "asset_quality": asset_score,
+                "profitability": profit_score,
+                "liability":     liab_score,
+                "valuation":     val_score,
+            },
+            "banking_ratios":  banking,
+            "buffett_checks":  checks,
+            "buffett_pass":    buffett_pass,
+            "all_flags":       all_flags,
+            "all_positives":   all_positives,
+            "current_price":   current_price,
+            "intrinsic_value": round(iv, 2),
+            "upside_pct":      round(upside, 1),
+            "valuation_score": min(95, max(10, int(50 + upside))),
+        }
+
+        logger.info(
+            f"✅ Banking Analysis: {total_score}/100 Grade {grade} — {verdict} | "
+            f"IV ₹{iv:,.0f} | Upside {upside:.1f}%"
+        )
+        return result

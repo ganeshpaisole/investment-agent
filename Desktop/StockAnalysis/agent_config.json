@@ -1,0 +1,29 @@
+{
+    "email": {
+        "enabled": false,
+        "sender_email": "your_email@gmail.com",
+        "sender_password": "your_app_password",
+        "recipient_email": "your_email@gmail.com",
+        "smtp_server": "smtp.gmail.com",
+        "smtp_port": 587
+    },
+    "watchlist": [
+        "stock_config_E2E.json",
+        "stock_config_TCS.json"
+    ],
+    "alert_rules": {
+        "E2E": {
+            "buy_below": 2200,
+            "max_price": 2500,
+            "min_score": 7.0
+        },
+        "TCS": {
+            "buy_below": 3500,
+            "max_price": 4000,
+            "min_score": 6.5
+        }
+    },
+    "send_daily_summary": false,
+    "run_time": "09:00",
+    "notes": "Configure email and alert rules above"
+}

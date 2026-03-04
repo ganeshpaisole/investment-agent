@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nse_agent"
+version = "0.0.1"
+description = "NSE/BSE filing parser and agents"
+authors = [ { name = "You", email = "you@example.com" } ]
+readme = "README.md"
+requires-python = ">=3.9"
+
+[project.scripts]
+# CLI entry point
+bse-agent = "nse_agent.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]

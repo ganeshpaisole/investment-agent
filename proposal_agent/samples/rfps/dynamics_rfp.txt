@@ -1,0 +1,21 @@
+RFP: Dynamics 365 CRM & Finance
+
+Company: Northwind Retail
+Submission deadline: 2026-04-22
+Timeline: 6 months
+
+Scope:
+- Implement Dynamics 365 Sales and Customer Service
+- Integrate with POS systems and ERP for order sync
+- Migrate customer master and 3 years transactional history
+
+Must-have:
+- Omni-channel customer view, case management, API integration
+
+Nice-to-have:
+- Power BI dashboards
+
+Evaluation Criteria:
+- Fixed-price, experience in retail, local support
+
+Compliance: GDPR, local procurement rules

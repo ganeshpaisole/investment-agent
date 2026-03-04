@@ -1,0 +1,20 @@
+RFP: MES for Discrete Manufacturing
+
+Company: Fabrikam Components
+Submission deadline: 2026-05-01
+Timeline: 5 months (pilot) + rollout
+
+Scope:
+- Implement MES for production line: OEE, traceability, lot genealogy
+- Integrate with PLCs, ERP (SAP S/4)
+
+Must-have:
+- Real-time data capture, historian, reports for quality
+
+Nice-to-have:
+- Advanced scheduling optimization
+
+Evaluation Criteria:
+- Fixed-price pilot, experience with PLC integration
+
+Compliance: Data residency local, ISO 9001

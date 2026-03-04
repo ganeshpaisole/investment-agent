@@ -1,0 +1,32 @@
+# Banking
+python -B main.py --ticker HDFCBANK --no-gpt --mode all
+
+# Insurance
+python -B main.py --ticker HDFCLIFE --no-gpt --mode all
+
+# Generic (should still work)
+python -B main.py --ticker TCS --no-gpt --mode all
+```
+
+---
+
+## What's Built — Full Architecture
+```
+NSE Stock Agent v1.3
+│
+├── 🏷️  Sector Classifier (auto-detects sector first)
+│       ↓
+├── 🏦 IT / FMCG / Auto / Pharma / Chemicals
+│   ├── Fundamental Agent    (100-pt Graham scoring)
+│   ├── DCF Valuation Agent  (sector-aware WACC + FCF)
+│   └── Management Agent     (Buffett 6-question checklist)
+│
+├── 🏦 Banking / NBFC
+│   ├── Banking Agent        (ROA, NPA, CAR, CASA, P/B DDM)
+│   └── Management Agent     (still runs)
+│
+├── 🛡️  Insurance
+│   ├── Insurance Agent      (Claims ratio, VNB, Solvency, P/EV)
+│   └── Management Agent     (still runs)
+│
+└── ⛔ REIT / Real Estate   → warns + skips DCF

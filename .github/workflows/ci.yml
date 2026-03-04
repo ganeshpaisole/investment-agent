@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f proposal_agent/requirements-dev.txt ]; then pip install -r proposal_agent/requirements-dev.txt; fi
+          if [ -f requirements.txt ]; then pip install -r requirements.txt || true; fi
+
+      - name: Run tests
+        run: |
+          python -m pytest proposal_agent/tests -q
+      - name: Generate proposal artifacts for inspection
+        run: |
+          python proposal_agent/tools/generator.py proposal_agent/samples/rfps/sap_rfp.parsed.json --outdir proposal_agent/samples/rfps/ci_output/sap || true
+          python proposal_agent/tools/generator.py proposal_agent/samples/rfps/dynamics_rfp.parsed.json --outdir proposal_agent/samples/rfps/ci_output/dynamics || true
+          python proposal_agent/tools/generator.py proposal_agent/samples/rfps/mes_rfp.parsed.json --outdir proposal_agent/samples/rfps/ci_output/mes || true
+
+      - name: Package per-sample artifacts
+        run: |
+          set -e
+          mkdir -p proposal_agent/samples/rfps/ci_output || true
+          for d in proposal_agent/samples/rfps/ci_output/*; do
+            if [ -d "$d" ]; then
+              name=$(basename "$d")
+              echo "Zipping $d -> proposal-${name}.zip"
+              zip -r "proposal-${name}.zip" "$d" || true
+            fi
+          done
+
+      - name: Upload per-sample artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: proposal-artifacts
+          path: proposal-*.zip
+          retention-days: 7

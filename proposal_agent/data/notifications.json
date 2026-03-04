@@ -1,0 +1,15 @@
+{
+  "enabled": false,
+  "webhooks": [
+    "https://example.com/hooks/notify"
+  ],
+  "smtp": {
+    "server": "smtp.example.com",
+    "port": 587,
+    "from": "no-reply@example.com",
+    "to": ["ops@example.com"],
+    "username": "smtp-user",
+    "password": "secret",
+    "use_tls": true
+  }
+}

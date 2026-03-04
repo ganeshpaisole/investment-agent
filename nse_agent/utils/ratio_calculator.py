@@ -42,6 +42,10 @@ class RatioCalculator:
         ev        = self.info.get("enterpriseValue", 0) or 0
         ebitda    = self.info.get("ebitda", 0) or 0
         ev_ebitda = self._safe_divide(ev, ebitda)
+        # Cap at 100x — anything higher is a data error
+        if ev_ebitda > 100:
+            logger.warning(f"⚠️  EV/EBITDA anomaly: {ev_ebitda:.1f}x — likely data error, capping at 0")
+            ev_ebitda = 0
         eps_growth = (self.info.get("earningsGrowth", 0) or 0) * 100
         peg_ratio  = self._safe_divide(pe_ratio, eps_growth) if eps_growth > 0 else 0
         earnings_yield = self._safe_divide(eps, self.price) * 100
@@ -56,18 +60,31 @@ class RatioCalculator:
 
     def get_profitability_ratios(self) -> dict:
         logger.info("💹 Calculating profitability ratios...")
-        roe           = (self.info.get("returnOnEquity", 0) or 0) * 100
-        roa           = (self.info.get("returnOnAssets", 0) or 0) * 100
+        screener = self.data.get("screener_data", {})
+
+        roe = (self.info.get("returnOnEquity", 0) or 0) * 100
+        roa = (self.info.get("returnOnAssets", 0) or 0) * 100
+
         net_income    = self._get(self.income, "Net Income", "Net Income Common Stockholders")
         revenue       = self._get(self.income, "Total Revenue", "Revenue")
         net_margin    = self._safe_divide(net_income, revenue) * 100
         ebitda        = self.info.get("ebitda", 0) or 0
         ebitda_margin = self._safe_divide(ebitda, revenue) * 100
+
         ebit             = self._get(self.income, "EBIT", "Operating Income")
         total_assets     = self._get(self.balance, "Total Assets")
         current_liab     = self._get(self.balance, "Current Liabilities", "Total Current Liabilities")
         capital_employed = total_assets - current_liab
         roce             = self._safe_divide(ebit, capital_employed) * 100
+
+        # ── Screener.in overrides (more reliable for Indian stocks) ──
+        if roe == 0 and screener.get("roe", 0) > 0:
+            roe = screener["roe"]
+            logger.info(f"📊 ROE from Screener.in: {roe:.1f}%")
+        if roce == 0 and screener.get("roce", 0) > 0:
+            roce = screener["roce"]
+            logger.info(f"📊 ROCE from Screener.in: {roce:.1f}%")
+
         return {
             "roe":           round(roe, 2),
             "roa":           round(roa, 2),
@@ -172,6 +189,37 @@ class RatioCalculator:
             "payout_ratio":   round(payout_ratio, 2),
         }
 
+    def get_shareholding(self) -> dict:
+        """
+        Get shareholding data — Screener.in preferred over Yahoo Finance.
+        Yahoo only has heldPercentInsiders which is 0 for widely held companies.
+        Screener has actual promoter %, FII %, DII %, pledge %.
+        """
+        screener = self.data.get("screener_data", {})
+
+        # Prefer Screener data (more accurate for Indian stocks)
+        promoter_pct     = screener.get("promoter_holding", 0)
+        fii_pct          = screener.get("fii_holding", 0)
+        dii_pct          = screener.get("dii_holding", 0)
+        promoter_pledge  = screener.get("promoter_pledge", 0)
+
+        # Fallback to Yahoo Finance if Screener had no data
+        if promoter_pct == 0:
+            promoter_pct = (self.info.get("heldPercentInsiders", 0) or 0) * 100
+        if fii_pct == 0 and dii_pct == 0:
+            inst_pct = (self.info.get("heldPercentInstitutions", 0) or 0) * 100
+            fii_pct  = inst_pct  # treat institutional as FII proxy
+
+        institutional_total = fii_pct + dii_pct
+
+        return {
+            "promoter_holding_pct":    round(promoter_pct, 1),
+            "fii_holding_pct":         round(fii_pct, 1),
+            "dii_holding_pct":         round(dii_pct, 1),
+            "institutional_total_pct": round(institutional_total, 1),
+            "promoter_pledge_pct":     round(promoter_pledge, 1),
+        }
+
     def calculate_graham_number(self) -> float:
         """
         Graham Number = √(22.5 × EPS × BVPS)
@@ -218,6 +266,7 @@ class RatioCalculator:
             "cashflow":       self.get_cashflow_ratios(),
             "growth":         self.get_growth_ratios(),
             "dividend":       self.get_dividend_data(),
+            "shareholding":   self.get_shareholding(),
             "graham_number":  self.calculate_graham_number(),
             "is_asset_light": self.is_asset_light(),
         }

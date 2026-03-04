@@ -1,0 +1,18 @@
+{
+  "title": "RFP: SAP S/4 HANA Implementation",
+  "raw": "RFP: SAP S/4 HANA Implementation\n\nCompany: Contoso Manufacturing\nSubmission deadline: 2026-04-15\nTimeline: 9 months\n\nScope:\n- Implement SAP S/4 HANA for Finance and Supply Chain\n- Migrate historical data from legacy ERP (10 years)\n- Integrate with MES and third-party logistics providers\n\nMust-have:\n- Financial consolidation, AR/AP automation, Inventory valuation\n- Automated batch traceability integration with MES\n- Cutover with minimal downtime (<24 hours)\n\nNice-to-have:\n- Embedded analytics and predictive inventory\n\nEvaluation Criteria:\n- Fixed-price proposal, proven experience in manufacturing, references, delivery timeline\n\nCompliance: GDPR, Data residency in EU\n",
+  "submission_deadline": "2026-04-15",
+  "company": "Contoso Manufacturing",
+  "timeline": "9 months",
+  "scope": "- Implement SAP S/4 HANA for Finance and Supply Chain\n- Migrate historical data from legacy ERP (10 years)\n- Integrate with MES and third-party logistics providers",
+  "must_have": "- Financial consolidation, AR/AP automation, Inventory valuation\n- Automated batch traceability integration with MES\n- Cutover with minimal downtime (<24 hours)",
+  "nice_to_have": "- Embedded analytics and predictive inventory",
+  "evaluation_criteria": "- Fixed-price proposal, proven experience in manufacturing, references, delivery timeline",
+  "compliance": "GDPR, Data residency in EU",
+  "scope_items": [
+    "Implement SAP S/4 HANA for Finance and Supply Chain",
+    "Migrate historical data from legacy ERP (10 years)",
+    "Integrate with MES and third-party logistics providers"
+  ],
+  "modules_count": 3
+}

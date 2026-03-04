@@ -1,0 +1,13 @@
+{
+  "title": "SAP S/4 migration for ExampleCo",
+  "company": "ExampleCo",
+  "submission_deadline": "2026-04-01",
+  "product": "sap",
+  "compliance": "ISO, GDPR",
+  "clause_tags": ["security", "gdpr"],
+  "scope_items": [
+    "Finance migration: GL, AP, AR",
+    "Inventory management and warehouse integration",
+    "Data migration from legacy systems"
+  ]
+}

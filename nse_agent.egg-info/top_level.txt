@@ -1,0 +1,5 @@
+Desktop
+Old Files
+agent
+data
+nse_agent

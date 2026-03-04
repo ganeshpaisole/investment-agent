@@ -1,0 +1,8 @@
+role,onshore_daily_usd,offshore_daily_usd,default_utilization_pct
+Project Manager,1200,700,80
+Solution Architect,1100,650,80
+Functional Consultant,900,450,85
+Technical Consultant,700,400,90
+Developer,600,350,90
+QA Engineer,500,300,90
+Basis/Infra,800,450,80

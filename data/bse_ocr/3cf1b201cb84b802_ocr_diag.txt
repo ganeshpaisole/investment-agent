@@ -1,0 +1,24 @@
+(oe Step by Step Process for Loading/Reloading FTC through YONO LITE Application: -
+1. After Log in to Yono Lite > Click Manage Cards.
+2. Under Manage Cards, click Prepaid Card.
+a) Under Prepaid Card, Click View My Linked Prepaid Cards option to check whether your FTC is linked.
+
+b) If not linked, please use the option Link My Prepaid Card to link the card.
+3. For Loading, please click following option:
+a) State Bank Foreign Travel Card > Reload My FTC Accept Terms and Conditions > Select the
+Debit Account using drop down to proceed.
+
+b) Using Drop down Select the Card to Load/Reload and select the currency, enter the amount and select
+Purpose of Travel using drop down.
+
+c) Enter all the details like, passport validity, VISA details, flight details.
+
+4. After entering all details and accepting terms and conditions, click Submit button. On entering OTP transaction will
+be sent for processing.
+
+5. Under History Tab transaction status can be viewed.
+
+6. Transactions initiated before 03:00 pm will be authorized on the same day and transaction initiated after 03:00 pm
+and non-working day will be authorized on the next working day. Please keep sufficient balance till the transaction is
+authorized.
+

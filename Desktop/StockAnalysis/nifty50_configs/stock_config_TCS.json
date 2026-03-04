@@ -1,0 +1,74 @@
+{
+    "ticker": "TCS",
+    "company_name": "Tata Consultancy Services",
+    "sector": "Technology",
+    "current_data": {
+        "price": 2694.9,
+        "market_cap_cr": 975038.32,
+        "annual_revenue_cr": 260802.01,
+        "ebitda_margin": 0.2615,
+        "pe_ratio": 20.45,
+        "debt_cr": 10821.0,
+        "cash_cr": 56743.0
+    },
+    "growth_assumptions": {
+        "conservative": {
+            "revenue_growth_5y": [
+                0.1,
+                0.09,
+                0.08,
+                0.07,
+                0.07
+            ],
+            "ebitda_margins_5y": [
+                0.22,
+                0.23,
+                0.24,
+                0.24,
+                0.25
+            ]
+        },
+        "base": {
+            "revenue_growth_5y": [
+                0.15,
+                0.13,
+                0.12,
+                0.1,
+                0.09
+            ],
+            "ebitda_margins_5y": [
+                0.25,
+                0.26,
+                0.27,
+                0.28,
+                0.28
+            ]
+        },
+        "aggressive": {
+            "revenue_growth_5y": [
+                0.2,
+                0.18,
+                0.15,
+                0.13,
+                0.11
+            ],
+            "ebitda_margins_5y": [
+                0.28,
+                0.29,
+                0.3,
+                0.31,
+                0.32
+            ]
+        }
+    },
+    "technical_data": {
+        "support_levels": [],
+        "resistance_levels": [],
+        "ma_50": 0,
+        "ma_200": 0,
+        "rsi": 50
+    },
+    "notes": "NIFTY 50 stock - Fill in current data from Screener.in. Generated: 2026-02-18",
+    "last_updated": "2026-02-18T22:11:19.326428",
+    "data_source": "Yahoo Finance (yfinance)"
+}

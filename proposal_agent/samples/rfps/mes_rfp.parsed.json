@@ -1,0 +1,16 @@
+{
+  "title": "RFP: MES for Discrete Manufacturing",
+  "raw": "RFP: MES for Discrete Manufacturing\n\nCompany: Fabrikam Components\nSubmission deadline: 2026-05-01\nTimeline: 5 months (pilot) + rollout\n\nScope:\n- Implement MES for production line: OEE, traceability, lot genealogy\n- Integrate with PLCs, ERP (SAP S/4)\n\nMust-have:\n- Real-time data capture, historian, reports for quality\n\nNice-to-have:\n- Advanced scheduling optimization\n\nEvaluation Criteria:\n- Fixed-price pilot, experience with PLC integration\n\nCompliance: Data residency local, ISO 9001\n",
+  "submission_deadline": "2026-05-01",
+  "timeline": "5 months (pilot) + rollout",
+  "scope": "- Implement MES for production line: OEE, traceability, lot genealogy\n- Integrate with PLCs, ERP (SAP S/4)",
+  "must_have": "- Real-time data capture, historian, reports for quality",
+  "nice_to_have": "- Advanced scheduling optimization",
+  "evaluation_criteria": "- Fixed-price pilot, experience with PLC integration",
+  "compliance": "Data residency local, ISO 9001",
+  "scope_items": [
+    "Implement MES for production line: OEE, traceability, lot genealogy",
+    "Integrate with PLCs, ERP (SAP S/4)"
+  ],
+  "modules_count": 2
+}

@@ -1,0 +1,32 @@
+ACCOUNT AGGREGATOR FRAMEWORK
+
+. The Account Aggregator framework is an initiative by the Reserve Bank of India
+to make financial data more accessible by formalising data intermediaries
+called Account Aggregator (AA). AAs are RBI regulated NBFCs which facilitates
+sharing a user’s financial information from Financial Information Provider (FIP)
+that holds consumer data to Financial Information User (FIU), which is
+requesting consumer data, after obtaining consent of the user. Account
+Aggregators are data blind, and neither see nor store the financial data shared
+by FIPs.
+
+. The account aggregator (AA) ecosystem facilitates real-time sharing of financial
+information between entities regulated by four financial regulators — RBI,
+IRDA, PFRDA and SEBI. GSTN has also been recently permitted to act as FIP
+to share GST information through AA framework.
+
+. AA is said to be the first step towards bringing open banking in India and
+empowering millions of customers to digitally access and digitally share their
+financial data across institutions in a secure and efficient manner. Account
+Aggregator empowers the individual to have control over their personal financial
+data and enable them to approach any financial institution (FIU) for their credit
+needs.
+
+. Auser has full control on sharing of information such as which bank account
+details to share, for what time-period it is to be shared and specific purpose as
+defined in the ecosystem, as well. A user can always terminate or close earlier
+given consent to share the information by logging into respective AA portal from
+where the consents were authorized.
+
+. SBI is live on Account Aggregator ecosystem since 30.07.2022 and currently
+has onboarded 05 AAs (NADL, CAMS, FinVu, OneMoney & Anumati) to
+facilitate usage of the facility by its customers.

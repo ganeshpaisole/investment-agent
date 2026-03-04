@@ -1,0 +1,43 @@
+FAQs ON ‘CARD ON FILE TOKENSATION’ (COFT)
+
+As per RBI mandate starting 1st October 2022, clear card number, CVV and Expiry date
+and any other sensitive information related to cards cannot be stored by merchants for
+processing online transactions.
+
+Read more on: hitps://rbi.org.in/scripts/FS Notification.aspx?ld=12363&fn=9&Mode=0
+
+1. What will happen to Card details saved with Merchants?
+
+Ans. Starting 1st October 2022, clear card number, CVV and Expiry date and any other
+sensitive information related to cards cannot be stored by merchants for processing
+online transactions. After 30° September 2022, the actual card data would be deleted
+from the database of the merchants & the payment aggregators.
+
+2. From 1st October 2022, how will online transactions be processed?
+
+Ans. To continue faster checkout experience while ensuring security, please provide
+online merchants with the consent to save the cards in a form of a token. Alternatively,
+the transaction would be processed as a normal Card Not Present (CNP) transaction at
+Merchant page.
+
+3.What is a token? And how safe is it?
+
+Ans. For card on file, a token is a 16-digit number unique for a combination of card,
+token requestor and merchant. Through tokenization, your actual card details are
+replaced with token credentials which can be used only with the intended merchant.
+
+4. How can the tokenisation be carried?
+
+Ans. The card holder can get the card tokenised by initiating a request on the
+Website/app provided by the token requestor. The token requestor will forward the
+request directly to issuing bank or to the card network (Visa/Master/Rupay), with the
+consent of the card issuing bank. The party receiving the request from Token
+Requester, will issue a token corresponding to the combination of the card, the token
+requester and the merchant.
+
+5. How to give customer consent?
+Ans. The customers can provide the consent while:
+
+1). Performing a transaction: Select to give customer consent to save the card
+credentials securely by tokenisation with the online merchant
+

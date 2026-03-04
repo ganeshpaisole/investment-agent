@@ -1,0 +1,33 @@
+Great! Let me know the test results when you run it against HDFCBANK and HDFCLIFE.
+
+Here's where the project stands now:
+
+---
+
+## NSE Stock Agent v1.3 — Complete Build Summary
+
+| Agent | Sectors | Status |
+|---|---|---|
+| 📊 Fundamental | IT, FMCG, Auto, Pharma, Chemicals | ✅ |
+| 💰 DCF Valuation | Same + cyclical fix | ✅ |
+| 👔 Management | All sectors | ✅ |
+| 🏦 Banking | Banks, NBFCs | ✅ |
+| 🛡️ Insurance | Life + General | ✅ |
+| 🏷️ Sector Classifier | Auto-routes all sectors | ✅ |
+
+**Stocks tested and validated:** TCS, INFY, M&M, HCLTECH
+
+---
+
+## What's Remaining on the Roadmap
+
+| Priority | Agent | What it adds |
+|---|---|---|
+| 🔥 High | Market Sentiment | FII/DII flows, Put-Call ratio, 52w position |
+| 🔥 High | Streamlit Dashboard | Visual web UI instead of terminal |
+| 🟡 Medium | Pharma Agent | Patent pipeline, R&D intensity, FDA alerts |
+| 🟡 Medium | PSU Adjustments | Government ownership scoring corrections |
+| 🟢 Later | Portfolio Screener | Run all Nifty 50 stocks, rank by score |
+| 🟢 Later | GPT Narrative | Auto-generate investment thesis per stock |
+
+What do you want to tackle next? 🚀
