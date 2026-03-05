@@ -7,6 +7,13 @@ from pathlib import Path
 import re
 
 # Use the KB loader for clause ingestion/search
+# When this script is executed directly (python proposal_agent/tools/generator.py)
+# sys.path[0] is the script directory (proposal_agent/tools). Ensure the
+# repository root is on sys.path so `import proposal_agent` works reliably.
+repo_root = Path(__file__).resolve().parents[2]
+if str(repo_root) not in sys.path:
+    sys.path.insert(0, str(repo_root))
+
 from proposal_agent.kb import loader as kb_loader
 
 
@@ -626,7 +633,7 @@ if __name__ == '__main__':
     p = argparse.ArgumentParser(description='Generate proposal artifacts from parsed RFP JSON')
     p.add_argument('parsed_json', help='Parsed RFP JSON file')
     p.add_argument('--rates-file', help='CSV file with role rates (overrides default)', default=None)
-    p.add_argument('--contingency', type=float, help='Contingency as fraction (e.g. 0.2 for 20%)', default=0.20)
+    p.add_argument('--contingency', type=float, help='Contingency as fraction (e.g. 0.2 for 20%%)', default=0.20)
     p.add_argument('--onshore-pct', type=float, help='Onshore percentage for blended rates (0-100)', default=40.0)
     p.add_argument('--outdir', help='Output directory (defaults to parsed JSON parent/output)', default=None)
     p.add_argument('--set-rate', action='append', help='Override role rate. Formats: "Role=500" or "Role:onshore=600" or "Role:offshore=300". Can be repeated.', default=[])

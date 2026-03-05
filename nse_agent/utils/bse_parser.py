@@ -160,6 +160,35 @@ CASA_URL_MAP = {
     ],
 }
 
+# Company-specific bank metric regexes used by tests and quick matching.
+# Each entry maps a ticker to a dict of metric -> list-of-regex-patterns
+COMPANY_BANK_PATTERNS = {
+    "HDFCBANK": {
+        "casa": [r"CASA\s+ratio\s+was\s+([\d.]+)%", r"CASA\s*[:\-]?\s*([\d.]+)%"],
+        "car":  [r"Capital Adequacy Ratio\s*[:\-]?\s*([\d.]+)%", r"CRAR\s*[:\-]?\s*([\d.]+)%"],
+        "nim":  [r"Net interest margin\s+(?:was\s+)?at?\s*([\d.]+)%", r"NIM\s*[:\-]?\s*([\d.]+)%"],
+        "gnpa": [r"Gross\s+NPA[s]?\s.*?([\d.]+)%", r"%\s+of\s+Gross\s+NPA.*?([\d.]+)"],
+        "nnpa": [r"Net\s+NPA[s]?\s.*?([\d.]+)%", r"NNPA\s*[:\-]?\s*([\d.]+)%"],
+    },
+    "ICICIBANK": {
+        "casa": [r"CASA\s+ratio\s+was\s+([\d.]+)%", r"CASA\s*[:\-]?\s*([\d.]+)%"],
+        "car":  [r"Capital Adequacy Ratio\s*[:\-]?\s*([\d.]+)%"],
+        "nim":  [r"Net interest margin\s+(?:was\s+)?at?\s*([\d.]+)%"],
+    },
+    "AXISBANK": {
+        "casa": [r"CASA\s*[:\-]?\s*([\d.]+)%"],
+        "gnpa": [r"Gross\s+NPA[s]?\s.*?([\d.]+)%"],
+    },
+    "SBIN": {
+        "casa": [r"CASA\s*[:\-]?\s*([\d.]+)%"],
+        "car":  [r"Capital Adequacy Ratio\s*[:\-]?\s*([\d.]+)%"],
+    },
+    "BAJFINANCE": {
+        "aum": [r"AUM\s*[:\-]?\s*(?:Rs\.?|\u20B9)?\s*([\d,]+)"],
+        "yield_on_assets": [r"Yield\s+on\s+Assets?\s*[:\-]?\s*([\d.]+)%"],
+    },
+}
+
 
 # ============================================================
 # BSE FILING SEARCH
