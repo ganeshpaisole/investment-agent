@@ -1,0 +1,15 @@
+﻿# requirements.lock generated from venv pip freeze
+# Generated: 2026-03-06T00:05:44
+
+streamlit
+yfinance
+pandas
+numpy
+plotly
+ta
+fpdf
+feedparser
+requests
+apscheduler
+twilio
+yahooquery
