@@ -8,7 +8,7 @@ version = "0.0.1"
 description = "NSE/BSE filing parser and agents"
 authors = [ { name = "You", email = "you@example.com" } ]
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 [project.scripts]
 # CLI entry point
