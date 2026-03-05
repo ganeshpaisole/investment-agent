@@ -40,6 +40,21 @@ def load_clauses(dir_path) -> Dict[str, str]:
     return clauses
 
 
+def find_clauses_by_keyword(clauses: Dict[str, str], keyword: str) -> list:
+    """Return a list of clause keys whose name or content contains `keyword`.
+
+    Simple case-insensitive substring match used by the generator selection logic.
+    """
+    if not keyword:
+        return []
+    kw = keyword.lower()
+    matches = []
+    for k, v in clauses.items():
+        if kw in k.lower() or (isinstance(v, str) and kw in v.lower()):
+            matches.append(k)
+    return matches
+
+
 if __name__ == '__main__':
     # quick manual check
     import sys
