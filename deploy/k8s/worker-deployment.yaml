@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nse-agent-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nse-agent-worker
+  template:
+    metadata:
+      labels:
+        app: nse-agent-worker
+    spec:
+      containers:
+      - name: nse-agent-worker
+        image: ghcr.io/REPLACE_OWNER/nse-agent:latest
+        command: ["rq", "worker", "default"]
+        env:
+        - name: REDIS_URL
+          value: redis://redis:6379/0
