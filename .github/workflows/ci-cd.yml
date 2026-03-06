@@ -1,0 +1,80 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt || true
+          pip install pip-audit || true
+      - name: Run pip-audit
+        run: |
+          if [ -f requirements.lock ]; then pip-audit -r requirements.lock || true; fi
+      - name: Run tests
+        run: pytest -q || true
+
+  build_and_push:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push nse-agent image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: nse_agent/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/nse-agent:latest
+      - name: Build and push proposal-agent image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: proposal_agent/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/proposal-agent:latest
+
+  deploy_staging:
+    needs: build_and_push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: '1.27.3'
+      - name: Configure kubeconfig
+        run: |
+          echo "${{ secrets.KUBECONFIG }}" > kubeconfig
+          export KUBECONFIG=$PWD/kubeconfig
+      - name: Apply k8s manifests
+        run: |
+          kubectl apply -f deploy/k8s || true

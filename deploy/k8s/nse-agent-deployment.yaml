@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nse-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nse-agent
+  template:
+    metadata:
+      labels:
+        app: nse-agent
+    spec:
+      containers:
+      - name: nse-agent
+        image: ghcr.io/REPLACE_OWNER/nse-agent:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: REDIS_URL
+          value: redis://redis:6379/0
+        - name: DATABASE_URL
+          value: postgresql://postgres:postgres@postgres:5432/agents
