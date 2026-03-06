@@ -40,6 +40,22 @@ def load_clauses(dir_path) -> Dict[str, str]:
     return clauses
 
 
+def find_clauses_by_keyword(clauses: Dict[str, str], keyword: str) -> list:
+    """Return list of clause keys whose filename stem or content matches keyword.
+
+    This is a best-effort, case-insensitive substring match used by the
+    generator to select candidate clauses for an RFP keyword.
+    """
+    if not keyword:
+        return []
+    k = keyword.lower().strip()
+    matches = []
+    for name, content in clauses.items():
+        if k in name.lower() or k in (content or '').lower():
+            matches.append(name)
+    return matches
+
+
 if __name__ == '__main__':
     # quick manual check
     import sys
