@@ -1,0 +1,59 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: agents
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  minio:
+    image: minio/minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data
+    ports:
+      - '9000:9000'
+    volumes:
+      - minio-data:/data
+
+  nse-agent:
+    build:
+      context: .
+      dockerfile: nse_agent/Dockerfile
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/agents
+    depends_on:
+      - redis
+      - postgres
+      - minio
+
+  proposal-agent:
+    build:
+      context: .
+      dockerfile: proposal_agent/Dockerfile
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/agents
+    depends_on:
+      - redis
+      - postgres
+      - minio
+
+volumes:
+  redis-data:
+  pgdata:
+  minio-data:
