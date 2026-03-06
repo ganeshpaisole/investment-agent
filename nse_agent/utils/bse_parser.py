@@ -160,6 +160,35 @@ CASA_URL_MAP = {
     ],
 }
 
+# Backwards compatibility: some scripts/tests import these names
+# from `utils.bse_parser`. Provide a robust shim that tries multiple
+# import strategies so the names are available regardless of how
+# the package is imported in test/runtime environments.
+try:
+    from download_and_parse_attach import COMPANY_BANK_PATTERNS, COMPANY_KEYWORDS  # type: ignore
+except Exception:
+    try:
+        from nse_agent.download_and_parse_attach import COMPANY_BANK_PATTERNS, COMPANY_KEYWORDS  # type: ignore
+    except Exception:
+        try:
+            import importlib.util
+            from pathlib import Path
+
+            src = Path(__file__).resolve().parents[1] / "download_and_parse_attach.py"
+            if src.exists():
+                spec = importlib.util.spec_from_file_location("nse_agent._download_and_parse_attach", str(src))
+                mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mod)  # type: ignore
+                COMPANY_BANK_PATTERNS = getattr(mod, "COMPANY_BANK_PATTERNS", {})
+                COMPANY_KEYWORDS = getattr(mod, "COMPANY_KEYWORDS", {})
+            else:
+                COMPANY_BANK_PATTERNS = {}
+                COMPANY_KEYWORDS = {}
+        except Exception:
+            COMPANY_BANK_PATTERNS = {}
+            COMPANY_KEYWORDS = {}
+
+
 
 # ============================================================
 # BSE FILING SEARCH
