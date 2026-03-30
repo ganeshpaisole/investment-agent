@@ -1,0 +1,96 @@
+# Last activated: 2026-03-29
+name: Daily NSE Screener
+
+on:
+  schedule:
+    - cron: '30 2 * * 1-5'   # 08:30 IST (UTC+5:30) weekdays
+  workflow_dispatch:           # allow manual trigger from GitHub UI
+
+env:
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+jobs:
+  screener:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Create required directories
+        run: mkdir -p credentials data reports logs
+
+      - name: Restore Gmail credentials from secrets
+        run: |
+          echo "${{ secrets.GMAIL_TOKEN }}" | base64 -d > credentials/gmail_token.json
+          echo "${{ secrets.GMAIL_CREDENTIALS }}" | base64 -d > credentials/gmail_oauth_client.json
+
+      - name: Create .env file
+        run: |
+          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
+          echo "SMTP_USER=${{ secrets.SMTP_USER }}"           >> .env
+          echo "SMTP_PASS=${{ secrets.SMTP_PASS }}"           >> .env
+
+      - name: Run banking sector screener
+        run: python screener.py --sector BANKING --cloud
+
+      - name: Send daily summary email
+        env:
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+        run: python alert_engine.py --daily-summary --force
+
+      - name: Commit updated screener artefacts
+        run: |
+          git config user.email "github-actions@github.com"
+          git config user.name  "NSE Agent Bot"
+          git add data/signals_history.csv || true
+          git add reports/nifty50_screener_latest.csv || true
+          git diff --staged --quiet || git commit -m "Daily update $(date +%Y-%m-%d)"
+          git push || true
+
+      - name: Send failure notification
+        if: failure()
+        env:
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+        run: |
+          python - <<'EOF'
+          import os, smtplib
+          from email.mime.text import MIMEText
+
+          smtp_user = os.environ["SMTP_USER"]
+          smtp_pass = os.environ["SMTP_PASS"]
+
+          msg = MIMEText(
+              "The daily NSE screener workflow failed.\n\n"
+              "Check the run logs at:\n"
+              "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          )
+          msg["Subject"] = "[NSE Agent] Daily screener FAILED"
+          msg["From"]    = smtp_user
+          msg["To"]      = smtp_user
+
+          with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
+              s.login(smtp_user, smtp_pass)
+              s.send_message(msg)
+          EOF
