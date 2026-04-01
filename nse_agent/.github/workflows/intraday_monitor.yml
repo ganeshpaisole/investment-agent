@@ -1,0 +1,94 @@
+name: Intraday Monitor
+
+# Runs every 30 min during NSE market hours (09:15–15:30 IST = 03:45–10:00 UTC).
+# The script itself re-checks the market-hours gate, so any stray trigger outside
+# trading hours is a no-op.
+on:
+  schedule:
+    - cron: '45 3 * * 1-5'      # 09:15 IST — market open
+    - cron: '15,45 4-9 * * 1-5' # every 30 min, 09:45–15:15 IST
+    - cron: '0 10 * * 1-5'      # 15:30 IST — market close
+  workflow_dispatch:             # manual trigger / testing
+
+env:
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Create required directories
+        run: mkdir -p credentials data reports logs
+
+      - name: Restore Gmail credentials from secrets
+        run: |
+          echo "${{ secrets.GMAIL_TOKEN }}"       | base64 -d > credentials/gmail_token.json
+          echo "${{ secrets.GMAIL_CREDENTIALS }}" | base64 -d > credentials/gmail_oauth_client.json
+
+      - name: Create .env file
+        run: |
+          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
+          echo "SMTP_USER=${{ secrets.SMTP_USER }}"           >> .env
+          echo "SMTP_PASS=${{ secrets.SMTP_PASS }}"           >> .env
+
+      - name: Run intraday monitor
+        run: python intraday_monitor.py
+
+      - name: Commit intraday artefacts
+        run: |
+          git config user.email "github-actions@github.com"
+          git config user.name  "NSE Agent Bot"
+          git add data/intraday_*.json data/intraday_*.csv reports/intraday_*.log 2>/dev/null || true
+          git diff --staged --quiet || \
+            git commit -m "Intraday update $(TZ=Asia/Kolkata date +'%Y-%m-%d %H:%M IST')"
+          git push || true
+
+      - name: Send failure notification
+        if: failure()
+        env:
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+        run: |
+          python - <<'EOF'
+          import os, smtplib
+          from email.mime.text import MIMEText
+
+          user = os.environ["SMTP_USER"]
+          pwd  = os.environ["SMTP_PASS"]
+
+          msg = MIMEText(
+              "The intraday monitor workflow failed.\n\n"
+              "Logs: https://github.com/${{ github.repository }}"
+              "/actions/runs/${{ github.run_id }}"
+          )
+          msg["Subject"] = "[NSE Agent] Intraday monitor FAILED"
+          msg["From"]    = user
+          msg["To"]      = user
+
+          with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
+              s.login(user, pwd)
+              s.send_message(msg)
+          EOF
